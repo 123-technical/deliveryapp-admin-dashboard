@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   DatePicker,
@@ -33,6 +33,18 @@ export default function Orders() {
     sortBy?: keyof Order;
     sortOrder?: "ascend" | "descend";
   }>({});
+  const [tableHeight, setTableHeight] = useState<number>(520);
+
+  useEffect(() => {
+    const calc = () => {
+      // Heuristic: subtract header, content/card paddings, filters area
+      const h = window.innerHeight - 300; // tune if needed
+      setTableHeight(Math.max(320, h));
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
 
   const queryParams: OrdersQuery = useMemo(
     () => ({
@@ -57,25 +69,46 @@ export default function Orders() {
   });
 
   const columns: TableColumnsType<Order> = [
-    { title: "Order ID", dataIndex: "id", sorter: true, width: 120 },
+    {
+      title: "Order ID",
+      dataIndex: "id",
+      sorter: true,
+      width: 140,
+      fixed: "left",
+    },
     {
       title: "Date & Time",
       dataIndex: "createdAt",
       sorter: true,
       render: (v) => dayjs(v).format("YYYY-MM-DD HH:mm"),
+      width: 180,
+      ellipsis: true,
+      // fixed: "left",
     },
-    { title: "Customer", dataIndex: "customerName", sorter: true },
-    { title: "Contact", dataIndex: "contact" },
-    { title: "Items", dataIndex: "itemsCount", sorter: true, width: 80 },
     {
-      title: "Total",
+      title: "Customer",
+      dataIndex: "customerName",
+      sorter: true,
+      width: 180,
+      ellipsis: true,
+    },
+    {
+      title: "Contact",
+      dataIndex: "contact",
+      width: 160,
+      ellipsis: true,
+      responsive: ["md"],
+    },
+    // { title: "Items", dataIndex: "itemsCount", sorter: true, width: 80 },
+    {
+      title: "Total Amount (INR)",
       dataIndex: "totalPrice",
       sorter: true,
       render: (v) => `$${v.toFixed(2)}`,
-      width: 100,
+      width: 160,
     },
     {
-      title: "Payment",
+      title: "Payment Status",
       dataIndex: "paymentStatus",
       filters: [
         { text: "Paid", value: "paid" },
@@ -83,31 +116,28 @@ export default function Orders() {
         { text: "Refunded", value: "refunded" },
       ],
       render: (v) => v.charAt(0).toUpperCase() + v.slice(1),
+      width: 150,
     },
     {
-      title: "Status",
+      title: " Order Status",
       dataIndex: "status",
       render: (v: OrderStatus) => <OrderStatusTag status={v} />,
+      width: 160,
     },
-    { title: "Rider", dataIndex: "riderName" },
-    { title: "ETA (min)", dataIndex: "etaMinutes", width: 100 },
     {
-      title: "Actions",
-      key: "actions",
-      fixed: "right",
-      width: 180,
-      render: () => (
-        <Space>
-          <Button size="small">View</Button>
-          <Button size="small" type="text">
-            Print
-          </Button>
-          <Button size="small" danger type="text">
-            Cancel
-          </Button>
-        </Space>
-      ),
+      title: "Rider",
+      dataIndex: "riderName",
+      width: 150,
+      ellipsis: true,
+      responsive: ["lg"],
     },
+    {
+      title: "ETA (min)",
+      dataIndex: "etaMinutes",
+      width: 110,
+      responsive: ["lg"],
+    },
+    // Actions column can be re-enabled and fixed right if needed
   ];
 
   return (
@@ -181,11 +211,14 @@ export default function Orders() {
         loading={isFetching}
         columns={columns}
         dataSource={data?.data || []}
-        scroll={{ x: 1100 }}
+        size="middle"
+        sticky
+        scroll={{ x: "max-content", y: tableHeight }}
         pagination={{
           current: page,
           pageSize,
           total: data?.total || 0,
+          responsive: true,
           showSizeChanger: true,
           onChange: (p, ps) => {
             setPage(p);
