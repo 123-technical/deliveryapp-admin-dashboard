@@ -7,7 +7,7 @@ const Customers = lazy(() => import("./pages/Customers"));
 const Riders = lazy(() => import("./pages/Riders"));
 const Staffs = lazy(() => import("./pages/Staffs"));
 const Orders = lazy(() => import("./pages/Orders"));
-const Items = lazy(() => import("./pages/Items"));
+const Products = lazy(() => import("./pages/Products"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -24,7 +24,7 @@ function App() {
           <Route path="/riders" element={<Riders />} />
           <Route path="/staffs" element={<Staffs />} />
           <Route path="/orders" element={<Orders />} />
-          <Route path="/items" element={<Items />} />
+          <Route path="/products" element={<Products />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/settings" element={<Settings />} />

@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     () => [
       { key: "/overview", icon: <DashboardOutlined />, label: "Overview" },
       { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders" },
-      { key: "/items", icon: <AppstoreOutlined />, label: "Items" },
+      { key: "/products", icon: <AppstoreOutlined />, label: "Products" },
       { key: "/customers", icon: <TeamOutlined />, label: "Customers" },
       { key: "/riders", icon: <UserSwitchOutlined />, label: "Riders" },
       { key: "/staffs", icon: <UserOutlined />, label: "Staffs" },
