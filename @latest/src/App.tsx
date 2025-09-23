@@ -8,6 +8,7 @@ const Riders = lazy(() => import("./pages/Riders"));
 const Staffs = lazy(() => import("./pages/Staffs"));
 const Orders = lazy(() => import("./pages/Orders"));
 const Products = lazy(() => import("./pages/Products"));
+const ProductAdd = lazy(() => import("./pages/ProductAdd.tsx"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -25,6 +26,7 @@ function App() {
           <Route path="/staffs" element={<Staffs />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/products" element={<Products />} />
+          <Route path="/products/add" element={<ProductAdd />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/settings" element={<Settings />} />

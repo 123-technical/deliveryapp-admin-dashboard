@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import type { Product } from "../types/product";
 import { fetchProducts } from "../services/products";
@@ -63,6 +64,7 @@ function buttonStyle(
 }
 
 export default function Products() {
+  const navigate = useNavigate();
   const [data, setData] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -176,7 +178,10 @@ export default function Products() {
           >
             Bulk Actions
           </button>
-          <button style={{ ...buttonStyle("primary"), marginLeft: 8 }}>
+          <button
+            style={{ ...buttonStyle("primary"), marginLeft: 8 }}
+            onClick={() => navigate("/products/add")}
+          >
             Add Product
           </button>
         </div>
