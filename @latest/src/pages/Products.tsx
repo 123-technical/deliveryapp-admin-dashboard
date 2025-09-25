@@ -327,7 +327,17 @@ export default function Products() {
                       />
                     )}
                     <div>
-                      <div style={{ fontWeight: 600 }}>{p.name}</div>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          color: "#4f46e5",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                        }}
+                        onClick={() => navigate(`/product/detail/${p.id}`)}
+                      >
+                        {p.name}
+                      </div>
                       <div style={{ color: "#666", fontSize: 12 }}>
                         {p.brand ?? "—"}
                       </div>
@@ -437,16 +447,17 @@ export default function Products() {
                     {dayjs(p.lastModifiedAt).format("YYYY-MM-DD HH:mm")}
                   </td>
                   <td style={{ padding: 8, textAlign: "right" }}>
-                    <button style={buttonStyle("secondary", "sm")}>Edit</button>
                     <button
-                      style={{ ...buttonStyle("ghost", "sm"), marginLeft: 8 }}
+                      style={buttonStyle("secondary", "sm")}
+                      onClick={() => navigate(`/product/edit/${p.id}`)}
                     >
-                      Duplicate
+                      Edit
                     </button>
                     <button
-                      style={{ ...buttonStyle("danger", "sm"), marginLeft: 8 }}
+                      style={{ ...buttonStyle("ghost", "sm"), marginLeft: 8 }}
+                      onClick={() => navigate(`/product/duplicate/${p.id}`)}
                     >
-                      Delete
+                      Duplicate
                     </button>
                   </td>
                 </tr>
@@ -529,34 +540,5 @@ function Th({
           : ""
         : ""}
     </th>
-  );
-}
-
-function StatusPill({ value }: { value: Product["status"] }) {
-  const color =
-    value === "active"
-      ? "#065f46"
-      : value === "inactive"
-      ? "#6b7280"
-      : "#b91c1c";
-  const bg =
-    value === "active"
-      ? "#ecfdf5"
-      : value === "inactive"
-      ? "#f3f4f6"
-      : "#fee2e2";
-  return (
-    <span
-      style={{
-        padding: "2px 8px",
-        borderRadius: 999,
-        background: bg,
-        color,
-        fontSize: 12,
-        textTransform: "capitalize",
-      }}
-    >
-      {value.replaceAll("_", " ")}
-    </span>
   );
 }

@@ -65,6 +65,13 @@ const MOCK_PRODUCTS: Product[] = Array.from({ length: 500 }).map(() => {
   }
 })
 
+export async function fetchProductById(id: string): Promise<Product> {
+  const product = MOCK_PRODUCTS.find((p) => p.id === id);
+  if (!product) throw new Error('Product not found');
+  await new Promise((res) => setTimeout(res, 200));
+  return product;
+}
+
 export async function fetchProducts(params: ProductsQuery): Promise<ProductsResponse> {
   const {
     page,
