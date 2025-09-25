@@ -159,7 +159,25 @@ export default function Products() {
             setPage(1);
             setSearch(e.target.value);
           }}
-          style={{ padding: 8, width: 360 }}
+          style={{
+            padding: "8px 12px",
+            width: 360,
+            borderRadius: 8,
+            border: "1px solid #e5e7eb",
+            outline: "none",
+            background: "#fff",
+            color: "#111827",
+            fontSize: 14,
+            transition: "border-color 120ms ease, box-shadow 120ms ease",
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = "#4f46e5";
+            e.target.style.boxShadow = "0 0 0 3px rgba(79, 70, 229, 0.1)";
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = "#e5e7eb";
+            e.target.style.boxShadow = "none";
+          }}
         />
         <div>
           <button
@@ -180,7 +198,7 @@ export default function Products() {
           </button>
           <button
             style={{ ...buttonStyle("primary"), marginLeft: 8 }}
-            onClick={() => navigate("/products/add")}
+            onClick={() => navigate("/product/add")}
           >
             Add Product
           </button>
@@ -337,23 +355,83 @@ export default function Products() {
                     )}
                   </td>
                   <td style={{ padding: 8 }}>
-                    <div>{p.stockQty}</div>
-                    <span
+                    <button
                       style={{
-                        fontSize: 12,
-                        color:
-                          p.stockStatus === "out_of_stock"
-                            ? "#b91c1c"
-                            : p.stockStatus === "low_stock"
-                            ? "#b45309"
-                            : "#065f46",
+                        width: 50,
+                        height: 24,
+                        borderRadius: 12,
+                        border: "none",
+                        background: p.stockQty > 0 ? "#4f46e5" : "#e5e7eb",
+                        cursor: "pointer",
+                        position: "relative",
+                        transition: "background 200ms ease",
+                      }}
+                      onClick={() => {
+                        const newQty = p.stockQty > 0 ? 0 : 10;
+                        // Here you would call updateProduct API
+                        console.log(`Toggle stock for ${p.id}: ${newQty}`);
+                        // Update the local state to show the change
+                        setData((prevData) =>
+                          prevData.map((item) =>
+                            item.id === p.id
+                              ? {
+                                  ...item,
+                                  stockQty: newQty,
+                                  stockStatus:
+                                    newQty > 0 ? "in_stock" : "out_of_stock",
+                                }
+                              : item
+                          )
+                        );
                       }}
                     >
-                      {p.stockStatus.replaceAll("_", " ")}
-                    </span>
+                      <div
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          background: "#fff",
+                          position: "absolute",
+                          top: 2,
+                          left: p.stockQty > 0 ? 28 : 2,
+                          transition: "left 200ms ease",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                        }}
+                      />
+                    </button>
                   </td>
                   <td style={{ padding: 8 }}>
-                    <StatusPill value={p.status} />
+                    <select
+                      value={p.status}
+                      onChange={(e) => {
+                        const newStatus = e.target.value as Product["status"];
+                        // Here you would call updateProduct API
+                        console.log(`Update status for ${p.id}: ${newStatus}`);
+                        // For now, we'll update the local state to show the change
+                        setData((prevData) =>
+                          prevData.map((item) =>
+                            item.id === p.id
+                              ? { ...item, status: newStatus }
+                              : item
+                          )
+                        );
+                      }}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: 6,
+                        border: "1px solid #e5e7eb",
+                        background: "#fff",
+                        color: "#111827",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        minWidth: 100,
+                      }}
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="out_of_stock">Out of Stock</option>
+                    </select>
                   </td>
                   <td style={{ padding: 8 }}>
                     {dayjs(p.lastModifiedAt).format("YYYY-MM-DD HH:mm")}
