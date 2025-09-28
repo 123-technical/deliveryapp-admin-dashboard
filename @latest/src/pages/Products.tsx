@@ -351,7 +351,7 @@ export default function Products() {
                     </div>
                   </td>
                   <td style={{ padding: 8 }}>
-                    <div>${p.salePrice ?? p.regularPrice}</div>
+                    <div>₹{p.salePrice ?? p.regularPrice}</div>
                     {p.salePrice && (
                       <div
                         style={{
@@ -360,7 +360,7 @@ export default function Products() {
                           textDecoration: "line-through",
                         }}
                       >
-                        ${p.regularPrice}
+                        ₹{p.regularPrice}
                       </div>
                     )}
                   </td>
@@ -440,7 +440,6 @@ export default function Products() {
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
-                      <option value="out_of_stock">Out of Stock</option>
                     </select>
                   </td>
                   <td style={{ padding: 8 }}>
