@@ -16,6 +16,7 @@ const Reports = lazy(() => import("./pages/Reports"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Support = lazy(() => import("./pages/Support"));
+const Categories = lazy(() => import("./pages/Categories"));
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/support" element={<Support />} />
+          <Route path="/categories" element={<Categories />} />
           <Route
             path="*"
             element={<div style={{ padding: 24 }}>Not Found</div>}
