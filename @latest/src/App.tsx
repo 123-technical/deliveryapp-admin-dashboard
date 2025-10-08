@@ -1,6 +1,8 @@
 import { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AdminLayout from "./layouts/AdminLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import LoginPage from "./pages/Login";
 
 const Overview = lazy(() => import("./pages/Overview"));
 const Customers = lazy(() => import("./pages/Customers"));
@@ -20,32 +22,54 @@ const Categories = lazy(() => import("./pages/Categories"));
 
 function App() {
   return (
-    <AdminLayout>
-      <Suspense fallback={<div style={{ padding: 24 }}>Loading...</div>}>
-        <Routes>
-          <Route path="/" element={<Navigate to="/overview" replace />} />
-          <Route path="/overview" element={<Overview />} />
-          <Route path="/customers" element={<Customers />} />
-          <Route path="/riders" element={<Riders />} />
-          <Route path="/staffs" element={<Staffs />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/product/add" element={<ProductAdd />} />
-          <Route path="/product/edit/:id" element={<ProductEdit />} />
-          <Route path="/product/detail/:id" element={<ProductDetail />} />
-          <Route path="/product/duplicate/:id" element={<ProductDuplicate />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route
-            path="*"
-            element={<div style={{ padding: 24 }}>Not Found</div>}
-          />
-        </Routes>
-      </Suspense>
-    </AdminLayout>
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading...</div>}>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* Protected routes */}
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <AdminLayout>
+                <Routes>
+                  <Route
+                    path="/"
+                    element={<Navigate to="/overview" replace />}
+                  />
+                  <Route path="/overview" element={<Overview />} />
+                  <Route path="/customers" element={<Customers />} />
+                  <Route path="/riders" element={<Riders />} />
+                  <Route path="/staffs" element={<Staffs />} />
+                  <Route path="/orders" element={<Orders />} />
+                  <Route path="/products" element={<Products />} />
+                  <Route path="/product/add" element={<ProductAdd />} />
+                  <Route path="/product/edit/:id" element={<ProductEdit />} />
+                  <Route
+                    path="/product/detail/:id"
+                    element={<ProductDetail />}
+                  />
+                  <Route
+                    path="/product/duplicate/:id"
+                    element={<ProductDuplicate />}
+                  />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/support" element={<Support />} />
+                  <Route path="/categories" element={<Categories />} />
+                  <Route
+                    path="*"
+                    element={<div style={{ padding: 24 }}>Not Found</div>}
+                  />
+                </Routes>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 }
 

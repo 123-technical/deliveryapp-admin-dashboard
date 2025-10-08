@@ -1,4 +1,13 @@
-import { Layout, Menu, Typography, type MenuProps } from "antd";
+import {
+  Layout,
+  Menu,
+  Typography,
+  Button,
+  Dropdown,
+  Avatar,
+  Space,
+  type MenuProps,
+} from "antd";
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -13,7 +22,10 @@ import {
   CustomerServiceOutlined,
   UserSwitchOutlined,
   TagsOutlined,
+  LogoutOutlined,
+  DownOutlined,
 } from "@ant-design/icons";
+import { useAuth } from "../contexts/AuthContext";
 
 const { Header, Sider, Content } = Layout;
 
@@ -25,6 +37,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const items = useMemo(
     () => [
@@ -46,6 +59,32 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const handleMenuClick: MenuProps["onClick"] = (e) => {
     navigate(e.key);
   };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  const userMenuItems: MenuProps["items"] = [
+    {
+      key: "profile",
+      icon: <UserOutlined />,
+      label: "Profile",
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "logout",
+      icon: <LogoutOutlined />,
+      label: "Logout",
+      onClick: handleLogout,
+    },
+  ];
 
   return (
     <Layout style={{ height: "100dvh", overflow: "hidden" }}>
@@ -83,11 +122,43 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             padding: "0 16px",
             display: "flex",
             alignItems: "center",
+            justifyContent: "space-between",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
         >
           <Typography.Title level={4} style={{ margin: 0 }}>
             123 Online Admin
           </Typography.Title>
+
+          <Dropdown
+            menu={{ items: userMenuItems }}
+            placement="bottomRight"
+            arrow
+          >
+            <Button
+              type="text"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                height: "auto",
+                padding: "8px 12px",
+              }}
+            >
+              <Avatar
+                size="small"
+                style={{
+                  backgroundColor: "#1890ff",
+                }}
+              >
+                {user?.name?.charAt(0).toUpperCase() || "A"}
+              </Avatar>
+              <Space size={4}>
+                <span>{user?.name || "Admin"}</span>
+                <DownOutlined style={{ fontSize: "12px" }} />
+              </Space>
+            </Button>
+          </Dropdown>
         </Header>
         <Content style={{ margin: 16, overflow: "auto" }}>
           <div style={{ padding: 16, background: "#fff", minHeight: "100%" }}>

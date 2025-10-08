@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ConfigProvider, theme } from "antd";
 import "antd/dist/reset.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
@@ -18,7 +19,9 @@ createRoot(document.getElementById("root")!).render(
         }}
       >
         <BrowserRouter>
-          <App />
+          <AuthProvider>
+            <App />
+          </AuthProvider>
         </BrowserRouter>
       </ConfigProvider>
     </QueryClientProvider>
