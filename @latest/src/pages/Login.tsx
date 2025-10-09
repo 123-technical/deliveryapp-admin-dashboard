@@ -1,20 +1,16 @@
 import { useState } from "react";
-import { Form, Input, Button, Card, Typography, message, Space } from "antd";
+import { Form, Input, Button, Card, Typography, Space, App } from "antd";
 import { UserOutlined, LockOutlined, LoginOutlined } from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
 
-interface LoginFormValues {
-  email: string;
-  password: string;
-}
-
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { message } = App.useApp();
 
   const handleLogin = async (values: LoginFormValues) => {
     try {
@@ -109,10 +105,7 @@ export default function LoginPage() {
 
           <Form.Item
             name="password"
-            rules={[
-              { required: true, message: "Please input your password!" },
-              { min: 6, message: "Password must be at least 6 characters!" },
-            ]}
+            rules={[{ required: true, message: "Please input your password!" }]}
           >
             <Input.Password
               prefix={<LockOutlined />}

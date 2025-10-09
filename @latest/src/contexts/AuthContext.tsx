@@ -64,9 +64,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       setAuthState((prev) => ({ ...prev, isLoading: true }));
 
-      debugger;
+      // debugger;
       const response = await authService.login(credentials);
-      debugger;
+      // debugger;
       setAuthState({
         user: response.user,
         token: response.token,
