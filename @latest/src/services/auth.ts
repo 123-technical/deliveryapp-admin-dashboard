@@ -26,12 +26,21 @@ class AuthService {
             }
 
             const data: AuthResponse = await response.json();
+
+            const mappedData = {
+                ...data,
+                user: {
+                    ...data.user,
+                    name: data.user.username
+                }
+            }
       
             // Store tokens in localStorage
-            localStorage.setItem('auth_token', data.accessToken);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('auth_token', mappedData.accessToken);
+            localStorage.setItem('user', JSON.stringify(mappedData.user));
 
-            return data;
+            return mappedData;
+
         } catch (error) {
             console.error('Login error:', error);
             throw error;
