@@ -1,5 +1,6 @@
 import { authService } from "./auth";
 import type { Category, CreateCategoryDto } from '../types/category';
+import { requestFormReset } from "react-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -95,6 +96,36 @@ class CategoryService {
             throw error;
         }
     }
+
+    async updateCategory(id: string, categoryData: CreateCategoryDto): Promise<Category> {
+        try {
+            const token = authService.getToken();
+            const response = await fetch(`${this.baseURL}/api/v1/categories/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+                body: JSON.stringify(categoryData),
+            });
+
+            if (!response.ok) { 
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to update category');
+            }
+
+            const responseData = await response.json();
+            console.log('Update category response:', responseData);
+
+            const data = responseData.data || responseData;
+            console.log('Update category data:', data);
+
+            return data;
+        } catch (error) {
+            console.error('Update category error:', error);
+            throw error;
+        }
+     }
 }
 
 export const categoryService = new CategoryService();
