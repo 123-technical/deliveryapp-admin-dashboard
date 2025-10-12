@@ -151,10 +151,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   backgroundColor: "#1890ff",
                 }}
               >
-                {user?.name?.charAt(0).toUpperCase() || "A"}
+                {user?.username?.charAt(0).toUpperCase() || "A"}
               </Avatar>
               <Space size={4}>
-                <span>{user?.name || "Admin"}</span>
+                <span>{user?.username || "Admin"}</span>
                 <DownOutlined style={{ fontSize: "12px" }} />
               </Space>
             </Button>

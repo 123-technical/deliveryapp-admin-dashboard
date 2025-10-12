@@ -7,7 +7,7 @@ export interface LoginCredentials {
 export interface AuthUser {
   id: string;
   username: string;
-  name: string;
+  name: string; // This will be populated with username from backend
   role: string;
 }
 
@@ -16,10 +16,10 @@ export interface AuthResponse {
   user: AuthUser;
 }
 
-// export interface AuthState {
-//   user: AuthUser | null;
-//   token: string | null;
-//   refreshToken: string | null;
-//   isAuthenticated: boolean;
-//   isLoading: boolean;
-// }
+export interface AuthState {
+  user: AuthUser | null;
+  token: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
