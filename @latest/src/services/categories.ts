@@ -1,6 +1,5 @@
 import { authService } from "./auth";
-import type { Category, CreateCategoryDto } from '../types/category';
-import { requestFormReset } from "react-dom";
+import type { Category, CreateCategoryDto, UpdateCategoryDto } from '../types/category';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -15,8 +14,6 @@ class CategoryService {
         try {
             const token = authService.getToken();
             const user = authService.getUser();
-            console.log('Current user:', user);
-            console.log('Token:', token ? 'Present' : 'Missing');
             console.log('User role:', user?.role);
             
             const response = await fetch(`${this.baseURL}/api/v1/categories`, {
@@ -41,6 +38,36 @@ class CategoryService {
             return data;
         } catch (error) {
             console.error('Get categories error:', error);
+            throw error;
+        }
+    }
+
+    async getCategoryById(id: string): Promise<Category> {
+        try {
+            const token = authService.getToken();
+            const response = await fetch(`${this.baseURL}/api/v1/categories/${id}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to fetch category');
+            }
+            
+            const responseData = await response.json();
+            console.log('Get category by ID response:', responseData);
+            
+            // Extract the actual data from the wrapped response
+            const data = responseData.data || responseData;
+            console.log('Category data:', data);
+            
+            return data;
+        } catch (error) {
+            console.error('Get category by ID error:', error);
             throw error;
         }
     }
@@ -77,6 +104,37 @@ class CategoryService {
         }
     }
 
+    async updateCategory(id: string, categoryData: UpdateCategoryDto): Promise<Category> {
+        try {
+            const token = authService.getToken();
+            const response = await fetch(`${this.baseURL}/api/v1/categories/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+                body: JSON.stringify(categoryData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to update category');
+            }
+
+            const responseData = await response.json();
+            console.log('Update category response:', responseData);
+            
+            // Extract the actual data from the wrapped response
+            const data = responseData.data || responseData;
+            console.log('Update category data:', data);
+            
+            return data;
+        } catch (error) {
+            console.error('Update category error:', error);
+            throw error;
+        }
+    }
+
     async deleteCategory(id: string): Promise<void> {
         try {
             const token = authService.getToken();
@@ -97,35 +155,6 @@ class CategoryService {
         }
     }
 
-    async updateCategory(id: string, categoryData: CreateCategoryDto): Promise<Category> {
-        try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/categories/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
-                body: JSON.stringify(categoryData),
-            });
-
-            if (!response.ok) { 
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Failed to update category');
-            }
-
-            const responseData = await response.json();
-            console.log('Update category response:', responseData);
-
-            const data = responseData.data || responseData;
-            console.log('Update category data:', data);
-
-            return data;
-        } catch (error) {
-            console.error('Update category error:', error);
-            throw error;
-        }
-     }
 }
 
 export const categoryService = new CategoryService();

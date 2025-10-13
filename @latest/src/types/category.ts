@@ -17,3 +17,11 @@ export interface CreateCategoryDto{
     description?: string;
     parentId?: string;
 }
+
+export interface UpdateCategoryDto {
+    name?: string;
+    slug?: string;
+    imageUrl?: string;
+    description?: string;
+    parentId?: string;
+}

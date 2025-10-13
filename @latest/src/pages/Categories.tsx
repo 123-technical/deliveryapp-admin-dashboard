@@ -19,7 +19,10 @@ const Categories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   // Check if user has admin privileges
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
@@ -32,10 +35,6 @@ const Categories = () => {
     setLoading(true);
     try {
       const data = await categoryService.getEnabledCategories();
-      console.log("Categories data:", data);
-      console.log("First category:", data[0]);
-      console.log("First category keys:", Object.keys(data[0]));
-      console.log("First category description:", data[0]?.description);
       setCategories(data);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
@@ -80,6 +79,41 @@ const Categories = () => {
     }
   };
 
+  const handleEdit = (category: Category) => {
+    setEditingCategory(category);
+    editForm.setFieldsValue({
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      imageUrl: category.imageUrl,
+      parentId: category.parentId,
+    });
+    setIsEditModalVisible(true);
+  };
+
+  const handleEditModalOk = async () => {
+    try {
+      const values = await editForm.validateFields();
+      if (editingCategory) {
+        await categoryService.updateCategory(editingCategory.id, values);
+        message.success("Category updated successfully");
+        setIsEditModalVisible(false);
+        setEditingCategory(null);
+        editForm.resetFields();
+        fetchCategories();
+      }
+    } catch (error) {
+      console.error("Failed to update category:", error);
+      message.error("Failed to update category");
+    }
+  };
+
+  const handleEditModalCancel = () => {
+    setIsEditModalVisible(false);
+    setEditingCategory(null);
+    editForm.resetFields();
+  };
+
   const columns = [
     {
       title: "ID",
@@ -121,7 +155,7 @@ const Categories = () => {
               <Button
                 type="text"
                 icon={<EditOutlined />}
-                onClick={() => message.info("Edit functionality coming soon")}
+                onClick={() => handleEdit(record)}
               />
               <Popconfirm
                 title="Delete Category"
@@ -185,6 +219,72 @@ const Categories = () => {
           cancelText="Cancel"
         >
           <Form form={form} layout="vertical" name="categoryForm">
+            <Form.Item
+              name="name"
+              label="Category Name"
+              rules={[
+                { required: true, message: "Please enter category name!" },
+                {
+                  min: 2,
+                  message: "Category name must be at least 2 characters!",
+                },
+              ]}
+            >
+              <Input placeholder="Enter category name" />
+            </Form.Item>
+            <Form.Item
+              name="slug"
+              label="Slug"
+              rules={[
+                { required: true, message: "Please enter slug!" },
+                {
+                  pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+                  message:
+                    "Slug can only contain lowercase letters, numbers, and hyphens!",
+                },
+              ]}
+            >
+              <Input placeholder="Enter slug (e.g., electronics)" />
+            </Form.Item>
+            <Form.Item
+              name="description"
+              label="Description"
+              rules={[
+                {
+                  max: 500,
+                  message: "Description must be less than 500 characters!",
+                },
+              ]}
+            >
+              <Input.TextArea
+                placeholder="Enter category description"
+                rows={3}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="imageUrl"
+              label="Image URL"
+              rules={[
+                { type: "url", message: "Please enter a valid image URL!" },
+              ]}
+            >
+              <Input placeholder="Enter image URL (optional)" />
+            </Form.Item>
+          </Form>
+        </Modal>
+      )}
+
+      {isAdmin && (
+        <Modal
+          title="Edit Category"
+          open={isEditModalVisible}
+          onOk={handleEditModalOk}
+          onCancel={handleEditModalCancel}
+          okText="Update"
+          cancelText="Cancel"
+        >
+          <Form form={editForm} layout="vertical" name="editCategoryForm">
             <Form.Item
               name="name"
               label="Category Name"
