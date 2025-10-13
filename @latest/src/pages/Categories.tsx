@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Button,
   Table,
@@ -16,6 +17,7 @@ import type { Category } from "../types/category";
 
 const Categories = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -114,6 +116,10 @@ const Categories = () => {
     editForm.resetFields();
   };
 
+  const handleViewDetails = (category: Category) => {
+    navigate(`/category/${category.slug}`);
+  };
+
   const columns = [
     {
       title: "ID",
@@ -125,6 +131,15 @@ const Categories = () => {
       title: "Name",
       dataIndex: "name",
       key: "name",
+      render: (name: string, record: Category) => (
+        <Button
+          type="link"
+          onClick={() => handleViewDetails(record)}
+          style={{ padding: 0, height: "auto" }}
+        >
+          {name}
+        </Button>
+      ),
     },
     {
       title: "Slug",
