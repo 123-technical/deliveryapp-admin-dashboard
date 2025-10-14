@@ -1,50 +1,31 @@
-export type ProductStatus = 'active' | 'inactive' | 'out_of_stock'
-
-export type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock'
-
-export type PricingTier = {
-  minQty: number
-  price: number
-}
+export type ProductUnit = 'PIECE' | 'KG' | 'GRAM' | 'LITER' | 'ML' | 'METER' | 'CM' | 'BOX' | 'PACK'
 
 export type Product = {
   id: string
   name: string
+  slug: string
+  description: string
+  price: string // Decimal as string for backend compatibility
   sku: string
-  description?: string
-  brand?: string
-  category: string
-  subcategory?: string
-  tags?: string[]
-  thumbnailUrl?: string
-  images?: string[]
-  regularPrice: number
-  salePrice?: number
-  pricingTiers?: PricingTier[]
-  stockQty: number
-  stockStatus: StockStatus
-  status: ProductStatus
-  weightKg?: number
-  dimensionsCm?: { length: number; width: number; height: number }
-  fragile?: boolean
-  seoTitle?: string
-  seoDescription?: string
-  barcode?: string
-  supplier?: string
-  vendor?: string
-  rating?: number
-  reviewsCount?: number
-  lastModifiedAt: string // ISO date
+  unit: ProductUnit
+  imageUrl: string | null
+  isAvailable: boolean
+  categoryId: string
+  subCategoryId: string
+  brandId: string | null
+  createdAt: string // ISO date string
+  updatedAt: string // ISO date string
+  deletedAt: string | null // ISO date string
 }
 
 export type ProductsQuery = {
   page: number
   pageSize: number
   search?: string
-  category?: string | 'all'
-  brand?: string | 'all'
-  status?: ProductStatus | 'all'
-  stock?: StockStatus | 'all'
+  categoryId?: string | 'all'
+  subCategoryId?: string | 'all'
+  brandId?: string | 'all'
+  isAvailable?: boolean | 'all'
   minPrice?: number
   maxPrice?: number
   startDate?: string
@@ -57,4 +38,19 @@ export type ProductsResponse = {
   data: Product[]
   total: number
 }
+
+export type CreateProductDto = {
+  name: string
+  slug: string
+  description: string
+  price: string // Decimal as string for backend compatibility
+  sku: string
+  unit: ProductUnit
+  imageUrl?: string
+  isAvailable?: boolean
+  categoryId: string
+  brandId?: string // Optional field
+}
+
+export type UpdateProductDto = Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>>
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import type { Product } from "../types/product";
-import { fetchProducts } from "../services/products";
+import { productService } from "../services/products";
 
 type SortOrder = "ascend" | "descend" | undefined;
 
@@ -80,7 +80,7 @@ export default function Products() {
     (async () => {
       setLoading(true);
       try {
-        const res = await fetchProducts({
+        const res = await productService.getProducts({
           page,
           pageSize,
           search,
@@ -101,19 +101,19 @@ export default function Products() {
   }, [page, pageSize, search, sortBy, sortOrder]);
 
   const allSelectedOnPage = useMemo(() => {
-    if (data.length === 0) return false;
+    if (!data || data.length === 0) return false;
     return data.every((r) => selectedIds.includes(r.id));
   }, [data, selectedIds]);
 
   function toggleSelectAllCurrentPage() {
     if (allSelectedOnPage) {
       const remaining = selectedIds.filter(
-        (id) => !data.some((r) => r.id === id)
+        (id) => !data?.some((r) => r.id === id)
       );
       setSelectedIds(remaining);
     } else {
       const merged = Array.from(
-        new Set([...selectedIds, ...data.map((r) => r.id)])
+        new Set([...selectedIds, ...(data?.map((r) => r.id) || [])])
       );
       setSelectedIds(merged);
     }
@@ -283,7 +283,7 @@ export default function Products() {
                 </td>
               </tr>
             )}
-            {!loading && data.length === 0 && (
+            {!loading && (!data || data.length === 0) && (
               <tr>
                 <td colSpan={9} style={{ padding: 16 }}>
                   No products found.
@@ -291,7 +291,7 @@ export default function Products() {
               </tr>
             )}
             {!loading &&
-              data.map((p) => (
+              data?.map((p) => (
                 <tr key={p.id} style={{ borderBottom: "1px solid #f3f3f3" }}>
                   <td style={{ padding: 8 }}>
                     <input
@@ -376,23 +376,33 @@ export default function Products() {
                         position: "relative",
                         transition: "background 200ms ease",
                       }}
-                      onClick={() => {
+                      onClick={async () => {
                         const newQty = p.stockQty > 0 ? 0 : 10;
-                        // Here you would call updateProduct API
-                        console.log(`Toggle stock for ${p.id}: ${newQty}`);
-                        // Update the local state to show the change
-                        setData((prevData) =>
-                          prevData.map((item) =>
-                            item.id === p.id
-                              ? {
-                                  ...item,
-                                  stockQty: newQty,
-                                  stockStatus:
-                                    newQty > 0 ? "in_stock" : "out_of_stock",
-                                }
-                              : item
-                          )
-                        );
+                        try {
+                          await productService.updateProduct(p.id, {
+                            stockQty: newQty,
+                            stockStatus:
+                              newQty > 0 ? "in_stock" : "out_of_stock",
+                          });
+                          // Update the local state to show the change
+                          setData((prevData) =>
+                            prevData.map((item) =>
+                              item.id === p.id
+                                ? {
+                                    ...item,
+                                    stockQty: newQty,
+                                    stockStatus:
+                                      newQty > 0 ? "in_stock" : "out_of_stock",
+                                  }
+                                : item
+                            )
+                          );
+                        } catch (error) {
+                          console.error(
+                            "Failed to update product stock:",
+                            error
+                          );
+                        }
                       }}
                     >
                       <div
@@ -413,18 +423,26 @@ export default function Products() {
                   <td style={{ padding: 8 }}>
                     <select
                       value={p.status}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const newStatus = e.target.value as Product["status"];
-                        // Here you would call updateProduct API
-                        console.log(`Update status for ${p.id}: ${newStatus}`);
-                        // For now, we'll update the local state to show the change
-                        setData((prevData) =>
-                          prevData.map((item) =>
-                            item.id === p.id
-                              ? { ...item, status: newStatus }
-                              : item
-                          )
-                        );
+                        try {
+                          await productService.updateProduct(p.id, {
+                            status: newStatus,
+                          });
+                          // Update the local state to show the change
+                          setData((prevData) =>
+                            prevData.map((item) =>
+                              item.id === p.id
+                                ? { ...item, status: newStatus }
+                                : item
+                            )
+                          );
+                        } catch (error) {
+                          console.error(
+                            "Failed to update product status:",
+                            error
+                          );
+                        }
                       }}
                       style={{
                         padding: "4px 8px",
