@@ -22,6 +22,7 @@ const Categories = lazy(() => import("./pages/Categories"));
 const CategoryDetail = lazy(() => import("./pages/CategoryDetail"));
 const Brands = lazy(() => import("./pages/Brands"));
 const BrandDetail = lazy(() => import("./pages/BrandDetail"));
+const Carts = lazy(() => import("./pages/Carts"));
 
 function App() {
   return (
@@ -65,6 +66,7 @@ function App() {
                   <Route path="/category/:slug" element={<CategoryDetail />} />
                   <Route path="/brands" element={<Brands />} />
                   <Route path="/brand/:id" element={<BrandDetail />} />
+                  <Route path="/carts" element={<Carts />} />
                   <Route
                     path="*"
                     element={<div style={{ padding: 24 }}>Not Found</div>}

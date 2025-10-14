@@ -25,6 +25,7 @@ import {
   LogoutOutlined,
   DownOutlined,
   CrownOutlined,
+  ShoppingOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -44,6 +45,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     () => [
       { key: "/overview", icon: <DashboardOutlined />, label: "Overview" },
       { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders" },
+      { key: "/carts", icon: <ShoppingOutlined />, label: "Carts" },
       { key: "/products", icon: <AppstoreOutlined />, label: "Products" },
       { key: "/categories", icon: <TagsOutlined />, label: "Categories" },
       { key: "/brands", icon: <CrownOutlined />, label: "Brands" },
