@@ -20,6 +20,8 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Support = lazy(() => import("./pages/Support"));
 const Categories = lazy(() => import("./pages/Categories"));
 const CategoryDetail = lazy(() => import("./pages/CategoryDetail"));
+const Brands = lazy(() => import("./pages/Brands"));
+const BrandDetail = lazy(() => import("./pages/BrandDetail"));
 
 function App() {
   return (
@@ -61,6 +63,8 @@ function App() {
                   <Route path="/support" element={<Support />} />
                   <Route path="/categories" element={<Categories />} />
                   <Route path="/category/:slug" element={<CategoryDetail />} />
+                  <Route path="/brands" element={<Brands />} />
+                  <Route path="/brand/:id" element={<BrandDetail />} />
                   <Route
                     path="*"
                     element={<div style={{ padding: 24 }}>Not Found</div>}
