@@ -1,90 +1,197 @@
-import { faker } from '@faker-js/faker'
-import dayjs from 'dayjs'
-import type { Order, OrderStatus, OrdersQuery, OrdersResponse, PaymentStatus } from '../types/order'
+import { authService } from "./auth";
+import type { 
+  Order, 
+  OrderWithItems, 
+  CreateOrderDto, 
+  UpdateOrderDto, 
+  OrdersQuery, 
+  OrdersResponse 
+} from '../types/order';
 
-// In-memory mock dataset
-const STATUSES: OrderStatus[] = ['placed', 'packed', 'assigned', 'picking', 'delivering', 'delivered', 'cancelled', 'refunded']
-const PAYMENTS: PaymentStatus[] = ['paid', 'unpaid', 'refunded']
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
-const MOCK_DATA: Order[] = Array.from({ length: 350 }).map(() => {
-  const createdAt = dayjs().subtract(faker.number.int({ min: 0, max: 30 }), 'day').subtract(faker.number.int({ min: 0, max: 1440 }), 'minute')
-  const status = faker.helpers.arrayElement(STATUSES)
-  const paymentStatus = faker.helpers.arrayElement(PAYMENTS)
-  const itemsCount = faker.number.int({ min: 1, max: 8 })
-  const totalPrice = Number(faker.commerce.price({ min: 5, max: 120, dec: 2 }))
-  const withRider = ['assigned', 'picking', 'delivering', 'delivered'].includes(status)
+class OrderService {
+    private baseURL: string;
 
-  return {
-    id: faker.string.alphanumeric({ length: 8 }).toUpperCase(),
-    createdAt: createdAt.toISOString(),
-    customerName: faker.person.fullName(),
-    contact: faker.phone.number(),
-    itemsCount,
-    totalPrice,
-    status,
-    paymentStatus,
-    riderName: withRider ? faker.person.firstName() : undefined,
-    etaMinutes: withRider ? faker.number.int({ min: 5, max: 60 }) : undefined,
-    notes: faker.helpers.maybe(() => faker.lorem.sentence(), { probability: 0.2 }) || undefined,
-  }
-})
+    constructor() {
+        this.baseURL = API_BASE_URL;
+    }
 
-export async function fetchOrders(params: OrdersQuery): Promise<OrdersResponse> {
-  const {
-    page,
-    pageSize,
-    search,
-    status,
-    payment,
-    startDate,
-    endDate,
-    sortBy,
-    sortOrder,
-  } = params
+    async getOrders(query: OrdersQuery): Promise<OrdersResponse> {
+        try {
+            const token = authService.getToken();
+            const queryParams = new URLSearchParams();
+            
+            queryParams.append('page', query.page.toString());
+            queryParams.append('pageSize', query.pageSize.toString());
+            
+            if (query.search) queryParams.append('search', query.search);
+            if (query.status) queryParams.append('status', query.status);
+            if (query.userId) queryParams.append('userId', query.userId);
+            if (query.sortBy) queryParams.append('sortBy', query.sortBy);
+            if (query.sortOrder) queryParams.append('sortOrder', query.sortOrder);
+            if (query.startDate) queryParams.append('startDate', query.startDate);
+            if (query.endDate) queryParams.append('endDate', query.endDate);
 
-  let rows = [...MOCK_DATA]
+            const response = await fetch(`${this.baseURL}/api/v1/orders?${queryParams}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+            });
 
-  if (search) {
-    const s = search.toLowerCase()
-    rows = rows.filter((r) =>
-      r.id.toLowerCase().includes(s) ||
-      r.customerName.toLowerCase().includes(s) ||
-      r.contact.toLowerCase().includes(s)
-    )
-  }
+            if (!response.ok) {
+                throw new Error(`Failed to fetch orders: ${response.status} ${response.statusText}`);
+            }
 
-  if (status && status !== 'all') {
-    rows = rows.filter((r) => r.status === status)
-  }
-  if (payment && payment !== 'all') {
-    rows = rows.filter((r) => r.paymentStatus === payment)
-  }
-  if (startDate) {
-    const start = dayjs(startDate)
-    rows = rows.filter((r) => dayjs(r.createdAt).isAfter(start.subtract(1, 'ms')))
-  }
-  if (endDate) {
-    const end = dayjs(endDate)
-    rows = rows.filter((r) => dayjs(r.createdAt).isBefore(end.add(1, 'day')))
-  }
+            const data = await response.json();
+            
+            // Extract the actual data from the wrapped response
+            return data.data || data;
+        } catch (error) {
+            console.error('Get orders error:', error);
+            throw error;
+        }
+    }
 
-  if (sortBy) {
-    rows.sort((a, b) => {
-      const av = a[sortBy]
-      const bv = b[sortBy]
-      let cmp = 0
-      if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv
-      else cmp = String(av).localeCompare(String(bv))
-      return sortOrder === 'descend' ? -cmp : cmp
-    })
-  }
+    async getOrderById(orderId: string): Promise<OrderWithItems> {
+        try {
+            const token = authService.getToken();
+            const response = await fetch(`${this.baseURL}/api/v1/orders/${orderId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+            });
 
-  const total = rows.length
-  const start = (page - 1) * pageSize
-  const paged = rows.slice(start, start + pageSize)
+            if (!response.ok) {
+                throw new Error(`Failed to fetch order: ${response.status} ${response.statusText}`);
+            }
 
-  // Simulate latency
-  await new Promise((res) => setTimeout(res, 300))
+            const data = await response.json();
+            
+            // Extract the actual data from the wrapped response
+            return data.data || data;
+        } catch (error) {
+            console.error('Get order error:', error);
+            throw error;
+        }
+    }
 
-  return { data: paged, total }
-} 
+    async getUserOrders(userId: string, query: Omit<OrdersQuery, 'userId'>): Promise<OrdersResponse> {
+        try {
+            const token = authService.getToken();
+            const queryParams = new URLSearchParams();
+            
+            queryParams.append('page', query.page.toString());
+            queryParams.append('pageSize', query.pageSize.toString());
+            
+            if (query.search) queryParams.append('search', query.search);
+            if (query.status) queryParams.append('status', query.status);
+            if (query.sortBy) queryParams.append('sortBy', query.sortBy);
+            if (query.sortOrder) queryParams.append('sortOrder', query.sortOrder);
+            if (query.startDate) queryParams.append('startDate', query.startDate);
+            if (query.endDate) queryParams.append('endDate', query.endDate);
+
+            const response = await fetch(`${this.baseURL}/api/v1/orders/user/${userId}?${queryParams}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch user orders: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            // Extract the actual data from the wrapped response
+            return data.data || data;
+        } catch (error) {
+            console.error('Get user orders error:', error);
+            throw error;
+        }
+    }
+
+    async createOrder(orderData: CreateOrderDto): Promise<Order> {
+        try {
+            const token = authService.getToken();
+            
+            const response = await fetch(`${this.baseURL}/api/v1/orders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+                body: JSON.stringify(orderData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Failed to create order: ${response.status} ${response.statusText}`);
+            }
+
+            const responseData = await response.json();
+            
+            // Extract the actual data from the wrapped response
+            return responseData.data || responseData;
+        } catch (error) {
+            console.error('Create order error:', error);
+            throw error;
+        }
+    }
+
+    async updateOrder(orderId: string, orderData: UpdateOrderDto): Promise<Order> {
+        try {
+            const token = authService.getToken();
+            
+            const response = await fetch(`${this.baseURL}/api/v1/orders/${orderId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+                body: JSON.stringify(orderData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Failed to update order: ${response.status} ${response.statusText}`);
+            }
+
+            const responseData = await response.json();
+            
+            // Extract the actual data from the wrapped response
+            return responseData.data || responseData;
+        } catch (error) {
+            console.error('Update order error:', error);
+            throw error;
+        }
+    }
+
+    async deleteOrder(orderId: string): Promise<void> {
+        try {
+            const token = authService.getToken();
+            const response = await fetch(`${this.baseURL}/api/v1/orders/${orderId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to delete order: ${response.status} ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error('Delete order error:', error);
+            throw error;
+        }
+    }
+}
+
+export const orderService = new OrderService();
