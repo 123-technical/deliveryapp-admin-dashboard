@@ -43,7 +43,7 @@ export async function fetchCustomers(params: CustomersQuery): Promise<CustomersR
     const queryParams = new URLSearchParams();
     
     queryParams.append('page', params.page.toString());
-    queryParams.append('pageSize', params.pageSize.toString());
+    queryParams.append('limit', params.pageSize.toString());
     queryParams.append('role', 'CUSTOMER'); // Always filter by CUSTOMER role
     
     if (params.search) queryParams.append('search', params.search);

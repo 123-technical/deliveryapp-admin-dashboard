@@ -100,7 +100,7 @@ export default function OrderAdd() {
       const API_BASE_URL =
         import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
       const response = await fetch(
-        `${API_BASE_URL}/api/v1/users?role=CUSTOMER&page=1&pageSize=100`,
+        `${API_BASE_URL}/api/v1/users?role=CUSTOMER&page=1&limit=100`,
         {
           method: "GET",
           headers: {

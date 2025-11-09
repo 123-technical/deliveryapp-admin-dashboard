@@ -17,7 +17,7 @@ class ProductService {
             
             // Add query parameters
             queryParams.append('page', params.page.toString());
-            queryParams.append('pageSize', params.pageSize.toString());
+            queryParams.append('limit', params.pageSize.toString());
             
             if (params.search) queryParams.append('search', params.search);
             if (params.categoryId && params.categoryId !== 'all') queryParams.append('categoryId', params.categoryId);

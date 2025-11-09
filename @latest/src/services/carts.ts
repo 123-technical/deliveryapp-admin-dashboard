@@ -16,7 +16,7 @@ class CartService {
             const queryParams = new URLSearchParams();
             
             queryParams.append('page', query.page.toString());
-            queryParams.append('pageSize', query.pageSize.toString());
+            queryParams.append('limit', query.pageSize.toString());
             
             if (query.search) queryParams.append('search', query.search);
             if (query.userId) queryParams.append('userId', query.userId);
