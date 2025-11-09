@@ -139,6 +139,20 @@ const Brands = () => {
 
   const columns = [
     {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      width: 100,
+      render: (id: string) => (
+        <Typography.Text
+          copyable={{ text: id }}
+          style={{ fontFamily: "monospace", fontSize: "12px" }}
+        >
+          {id.substring(0, 8)}...
+        </Typography.Text>
+      ),
+    },
+    {
       title: "Logo",
       dataIndex: "logoUrl",
       key: "logoUrl",
@@ -172,21 +186,62 @@ const Brands = () => {
       title: "Description",
       dataIndex: "description",
       key: "description",
+      ellipsis: true,
       render: (description: string | null) => description || "-",
+    },
+    {
+      title: "Status",
+      key: "status",
+      width: 100,
+      render: (_: unknown, record: Brand) => (
+        <Typography.Text
+          type={record.deletedAt ? "danger" : "success"}
+          style={{ fontWeight: 500 }}
+        >
+          {record.deletedAt ? "Deleted" : "Active"}
+        </Typography.Text>
+      ),
     },
     {
       title: "Created At",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (date: string) => new Date(date).toLocaleDateString(),
+      width: 150,
+      render: (date: string) => new Date(date).toLocaleString(),
       sorter: (a: Brand, b: Brand) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    },
+    {
+      title: "Updated At",
+      dataIndex: "updatedAt",
+      key: "updatedAt",
+      width: 150,
+      render: (date: string) => new Date(date).toLocaleString(),
+      sorter: (a: Brand, b: Brand) =>
+        new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+    },
+    {
+      title: "Deleted At",
+      dataIndex: "deletedAt",
+      key: "deletedAt",
+      width: 150,
+      render: (date: string | null) =>
+        date ? new Date(date).toLocaleString() : "-",
+      sorter: (a: Brand, b: Brand) => {
+        if (!a.deletedAt && !b.deletedAt) return 0;
+        if (!a.deletedAt) return 1;
+        if (!b.deletedAt) return -1;
+        return (
+          new Date(a.deletedAt).getTime() - new Date(b.deletedAt).getTime()
+        );
+      },
     },
     {
       title: "Actions",
       key: "actions",
       width: 150,
-      render: (_: any, record: Brand) => (
+      fixed: "right" as const,
+      render: (_: unknown, record: Brand) => (
         <Space size="small">
           {isAdmin && (
             <>
@@ -195,6 +250,7 @@ const Brands = () => {
                 size="small"
                 icon={<EditOutlined />}
                 onClick={() => handleEdit(record)}
+                disabled={!!record.deletedAt}
               >
                 Edit
               </Button>
@@ -205,8 +261,14 @@ const Brands = () => {
                 okText="Yes"
                 cancelText="No"
                 okType="danger"
+                disabled={!!record.deletedAt}
               >
-                <Button danger size="small" icon={<DeleteOutlined />}>
+                <Button
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  disabled={!!record.deletedAt}
+                >
                   Delete
                 </Button>
               </Popconfirm>
@@ -247,6 +309,7 @@ const Brands = () => {
           dataSource={brands}
           rowKey="id"
           loading={loading}
+          scroll={{ x: 1400 }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,

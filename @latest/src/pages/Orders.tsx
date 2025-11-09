@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
@@ -26,6 +26,7 @@ import { orderService } from "../services/orders";
 import { useAuth } from "../contexts/AuthContext";
 import type {
   Order,
+  OrderWithItems,
   OrderStatus,
   OrdersQuery,
   OrdersResponse,
@@ -37,7 +38,8 @@ const { Title, Text } = Typography;
 
 const Orders = () => {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState<string>("");
   const [status, setStatus] = useState<OrderStatus | "all">("all");
@@ -50,7 +52,7 @@ const Orders = () => {
     sortOrder?: "ascend" | "descend";
   }>({});
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editingOrder, setEditingOrder] = useState<OrderWithItems | null>(null);
   const [editForm] = Form.useForm();
   const { user } = useAuth();
 
@@ -71,24 +73,49 @@ const Orders = () => {
     [page, pageSize, search, status, userId, range, sorter]
   );
 
-  const fetchOrders = async () => {
+  // Helper function to check if a string is a valid UUID
+  const isValidUUID = (str: string): boolean => {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str.trim());
+  };
+
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await orderService.getOrders(queryParams);
-      setOrders(response.data || []);
+      // If search is a valid UUID, fetch by ID instead
+      if (search && isValidUUID(search)) {
+        try {
+          const order = await orderService.getOrderById(search.trim());
+          setOrders([order]);
+          setTotal(1);
+        } catch (error) {
+          console.error("Failed to fetch order by ID:", error);
+          message.error("Order not found");
+          setOrders([]);
+          setTotal(0);
+        }
+      } else {
+        // Otherwise, use the general search
+        const response = await orderService.getOrders(queryParams);
+        setOrders(response.data || []);
+        setTotal(response.total || 0);
+      }
     } catch (error) {
       console.error("Failed to fetch orders:", error);
       message.error("Failed to fetch orders");
+      setOrders([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [queryParams, search]);
 
   useEffect(() => {
     fetchOrders();
-  }, [queryParams]);
+  }, [fetchOrders]);
 
-  const handleEdit = (order: Order) => {
+  const handleEdit = (order: OrderWithItems) => {
     setEditingOrder(order);
     editForm.setFieldsValue({
       status: order.status,
@@ -157,35 +184,67 @@ const Orders = () => {
 
   const columns = [
     {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      width: 100,
+      render: (id: string) => (
+        <Typography.Text
+          copyable={{ text: id }}
+          style={{ fontFamily: "monospace", fontSize: "12px" }}
+        >
+          {id.substring(0, 8)}...
+        </Typography.Text>
+      ),
+    },
+    {
       title: "Order Number",
       dataIndex: "orderNumber",
       key: "orderNumber",
       width: 140,
       fixed: "left",
-      render: (orderNumber: string, record: Order) => (
+      ellipsis: true,
+      render: (orderNumber: string, record: OrderWithItems) => (
         <Button
           type="link"
           onClick={() => handleViewDetails(record.id)}
-          style={{ padding: 0 }}
+          style={{ padding: 0, height: "auto" }}
         >
-          {orderNumber}
+          <Typography.Text
+            copyable={{ text: orderNumber }}
+            style={{ fontFamily: "monospace", fontSize: "12px" }}
+            ellipsis={{ tooltip: orderNumber }}
+          >
+            {orderNumber.substring(0, 12)}...
+          </Typography.Text>
         </Button>
       ),
-    },
-    {
-      title: "Date & Time",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      width: 180,
-      render: (date: string) => dayjs(date).format("YYYY-MM-DD HH:mm"),
-      sorter: true,
+      sorter: (a: OrderWithItems, b: OrderWithItems) =>
+        a.orderNumber.localeCompare(b.orderNumber),
     },
     {
       title: "User ID",
       dataIndex: "userId",
       key: "userId",
-      width: 200,
-      render: (userId: string) => <Text code>{userId}</Text>,
+      width: 120,
+      ellipsis: true,
+      render: (userId: string) => (
+        <Typography.Text
+          copyable={{ text: userId }}
+          style={{ fontFamily: "monospace", fontSize: "12px" }}
+          ellipsis={{ tooltip: userId }}
+        >
+          {userId.substring(0, 8)}...
+        </Typography.Text>
+      ),
+    },
+    {
+      title: "Items",
+      key: "items",
+      width: 80,
+      render: (_: unknown, record: OrderWithItems) => (
+        <Tag color="blue">{record.items?.length || 0}</Tag>
+      ),
     },
     {
       title: "Total Amount",
@@ -193,24 +252,54 @@ const Orders = () => {
       key: "totalAmount",
       width: 120,
       render: (amount: string) => `₹${parseFloat(amount).toFixed(2)}`,
-      sorter: true,
+      sorter: (a: OrderWithItems, b: OrderWithItems) =>
+        parseFloat(a.totalAmount) - parseFloat(b.totalAmount),
+    },
+    {
+      title: "Discount",
+      dataIndex: "discountAmount",
+      key: "discountAmount",
+      width: 120,
+      render: (amount: string) => `₹${parseFloat(amount).toFixed(2)}`,
+      sorter: (a: OrderWithItems, b: OrderWithItems) =>
+        parseFloat(a.discountAmount) - parseFloat(b.discountAmount),
     },
     {
       title: "Final Amount",
       dataIndex: "finalAmount",
       key: "finalAmount",
       width: 120,
-      render: (amount: string) => `₹${parseFloat(amount).toFixed(2)}`,
-      sorter: true,
+      render: (amount: string) => (
+        <Text strong style={{ color: "#4f46e5" }}>
+          ₹{parseFloat(amount).toFixed(2)}
+        </Text>
+      ),
+      sorter: (a: OrderWithItems, b: OrderWithItems) =>
+        parseFloat(a.finalAmount) - parseFloat(b.finalAmount),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 120,
-      render: (status: OrderStatus) => (
-        <Tag color={getStatusColor(status)}>{status.replace("_", " ")}</Tag>
-      ),
+      width: 130,
+      render: (status: string) => {
+        // Handle status values that might not be in OrderStatus type (like "PAID")
+        const statusMap: Record<string, { label: string; color: string }> = {
+          PENDING: { label: "Pending", color: "orange" },
+          CONFIRMED: { label: "Confirmed", color: "blue" },
+          PROCESSING: { label: "Processing", color: "cyan" },
+          SHIPPED: { label: "Shipped", color: "purple" },
+          DELIVERED: { label: "Delivered", color: "green" },
+          CANCELLED: { label: "Cancelled", color: "red" },
+          REFUNDED: { label: "Refunded", color: "volcano" },
+          PAID: { label: "Paid", color: "green" },
+        };
+        const statusInfo = statusMap[status] || {
+          label: status,
+          color: "default",
+        };
+        return <Tag color={statusInfo.color as any}>{statusInfo.label}</Tag>;
+      },
       filters: [
         { text: "Pending", value: "PENDING" },
         { text: "Confirmed", value: "CONFIRMED" },
@@ -219,15 +308,64 @@ const Orders = () => {
         { text: "Delivered", value: "DELIVERED" },
         { text: "Cancelled", value: "CANCELLED" },
         { text: "Refunded", value: "REFUNDED" },
+        { text: "Paid", value: "PAID" },
       ],
+      onFilter: (value: boolean | React.Key, record: OrderWithItems) =>
+        record.status === value,
+    },
+    {
+      title: "Delivery Address ID",
+      dataIndex: "deliveryAddressId",
+      key: "deliveryAddressId",
+      width: 150,
+      ellipsis: true,
+      render: (addressId: string) => (
+        <Typography.Text
+          copyable={{ text: addressId }}
+          style={{ fontFamily: "monospace", fontSize: "12px" }}
+          ellipsis={{ tooltip: addressId }}
+        >
+          {addressId.substring(0, 8)}...
+        </Typography.Text>
+      ),
+    },
+    {
+      title: "Delivery Slot ID",
+      dataIndex: "deliverySlotId",
+      key: "deliverySlotId",
+      width: 150,
+      ellipsis: true,
+      render: (slotId: string | null) =>
+        slotId ? (
+          <Typography.Text
+            copyable={{ text: slotId }}
+            style={{ fontFamily: "monospace", fontSize: "12px" }}
+            ellipsis={{ tooltip: slotId }}
+          >
+            {slotId.substring(0, 8)}...
+          </Typography.Text>
+        ) : (
+          <Typography.Text type="secondary">-</Typography.Text>
+        ),
     },
     {
       title: "Delivery Personnel",
       dataIndex: "deliveryPersonnelId",
       key: "deliveryPersonnelId",
       width: 150,
+      ellipsis: true,
       render: (personnelId: string | null) =>
-        personnelId ? <Text code>{personnelId}</Text> : "-",
+        personnelId ? (
+          <Typography.Text
+            copyable={{ text: personnelId }}
+            style={{ fontFamily: "monospace", fontSize: "12px" }}
+            ellipsis={{ tooltip: personnelId }}
+          >
+            {personnelId.substring(0, 8)}...
+          </Typography.Text>
+        ) : (
+          <Typography.Text type="secondary">-</Typography.Text>
+        ),
     },
     {
       title: "Notes",
@@ -238,11 +376,58 @@ const Orders = () => {
       render: (notes: string | null) => notes || "-",
     },
     {
+      title: "Order Status",
+      key: "orderStatus",
+      width: 100,
+      render: (_: unknown, record: OrderWithItems) => (
+        <Typography.Text
+          type={record.deletedAt ? "danger" : "success"}
+          style={{ fontWeight: 500 }}
+        >
+          {record.deletedAt ? "Deleted" : "Active"}
+        </Typography.Text>
+      ),
+    },
+    {
+      title: "Created At",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      width: 150,
+      render: (date: string) => dayjs(date).format("YYYY-MM-DD HH:mm"),
+      sorter: (a: OrderWithItems, b: OrderWithItems) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    },
+    {
+      title: "Updated At",
+      dataIndex: "updatedAt",
+      key: "updatedAt",
+      width: 150,
+      render: (date: string) => dayjs(date).format("YYYY-MM-DD HH:mm"),
+      sorter: (a: OrderWithItems, b: OrderWithItems) =>
+        new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+    },
+    {
+      title: "Deleted At",
+      dataIndex: "deletedAt",
+      key: "deletedAt",
+      width: 150,
+      render: (date: string | null) =>
+        date ? dayjs(date).format("YYYY-MM-DD HH:mm") : "-",
+      sorter: (a: OrderWithItems, b: OrderWithItems) => {
+        if (!a.deletedAt && !b.deletedAt) return 0;
+        if (!a.deletedAt) return 1;
+        if (!b.deletedAt) return -1;
+        return (
+          new Date(a.deletedAt).getTime() - new Date(b.deletedAt).getTime()
+        );
+      },
+    },
+    {
       title: "Actions",
       key: "actions",
-      width: 150,
+      width: 180,
       fixed: "right",
-      render: (_: any, record: Order) => (
+      render: (_: unknown, record: OrderWithItems) => (
         <Space size="small">
           <Button
             type="primary"
@@ -259,6 +444,7 @@ const Orders = () => {
                 size="small"
                 icon={<EditOutlined />}
                 onClick={() => handleEdit(record)}
+                disabled={!!record.deletedAt}
               >
                 Edit
               </Button>
@@ -269,8 +455,14 @@ const Orders = () => {
                 okText="Yes, Delete"
                 cancelText="Cancel"
                 okType="danger"
+                disabled={!!record.deletedAt}
               >
-                <Button danger size="small" icon={<DeleteOutlined />}>
+                <Button
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  disabled={!!record.deletedAt}
+                >
                   Delete
                 </Button>
               </Popconfirm>
@@ -287,21 +479,45 @@ const Orders = () => {
         <Title level={2} style={{ margin: 0 }}>
           Orders Management
         </Title>
-        <Text type="secondary">Manage and track all orders in the system</Text>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: 8,
+          }}
+        >
+          <Text type="secondary">
+            Manage and track all orders in the system
+          </Text>
+          {isAdmin && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate("/orders/add")}
+            >
+              Create Order
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card style={{ marginBottom: "24px" }}>
         <Space wrap>
           <Input.Search
             allowClear
-            placeholder="Search by order number, user ID"
+            placeholder="Search by order ID, order number, or user ID"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onSearch={() => {
               setPage(1);
               fetchOrders();
             }}
-            style={{ width: 280 }}
+            onPressEnter={() => {
+              setPage(1);
+              fetchOrders();
+            }}
+            style={{ width: 320 }}
           />
           <Select<OrderStatus | "all">
             style={{ width: 160 }}
@@ -350,17 +566,17 @@ const Orders = () => {
       </Card>
 
       <Card>
-        <Table<Order>
+        <Table<OrderWithItems>
           rowKey="id"
           loading={loading}
           columns={columns}
           dataSource={orders}
           size="middle"
-          scroll={{ x: "max-content" }}
+          scroll={{ x: 2000 }}
           pagination={{
             current: page,
             pageSize,
-            total: orders.length,
+            total: total,
             responsive: true,
             showSizeChanger: true,
             showQuickJumper: true,

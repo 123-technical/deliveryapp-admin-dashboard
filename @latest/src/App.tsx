@@ -9,6 +9,7 @@ const Customers = lazy(() => import("./pages/Customers"));
 const Riders = lazy(() => import("./pages/Riders"));
 const Staffs = lazy(() => import("./pages/Staffs"));
 const Orders = lazy(() => import("./pages/Orders"));
+const OrderAdd = lazy(() => import("./pages/OrderAdd"));
 const Products = lazy(() => import("./pages/Products"));
 const ProductAdd = lazy(() => import("./pages/ProductAdd.tsx"));
 const ProductEdit = lazy(() => import("./pages/ProductEdit.tsx"));
@@ -24,6 +25,7 @@ const Brands = lazy(() => import("./pages/Brands"));
 const BrandDetail = lazy(() => import("./pages/BrandDetail"));
 const Carts = lazy(() => import("./pages/Carts"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail"));
+const CustomerAdd = lazy(() => import("./pages/CustomerAdd"));
 
 function App() {
   return (
@@ -45,9 +47,11 @@ function App() {
                   />
                   <Route path="/overview" element={<Overview />} />
                   <Route path="/customers" element={<Customers />} />
+                  <Route path="/customers/add" element={<CustomerAdd />} />
                   <Route path="/riders" element={<Riders />} />
                   <Route path="/staffs" element={<Staffs />} />
                   <Route path="/orders" element={<Orders />} />
+                  <Route path="/orders/add" element={<OrderAdd />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/product/add" element={<ProductAdd />} />
                   <Route path="/product/edit/:id" element={<ProductEdit />} />

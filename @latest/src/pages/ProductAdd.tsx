@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import type { ProductUnit, CreateProductDto } from "../types/product";
 import { productService } from "../services/products";
 import { categoryService } from "../services/categories";
+import { brandService } from "../services/brands";
 import type { Category } from "../types/category";
+import type { Brand } from "../types/brand";
 
 function inputStyle() {
   return {
@@ -36,19 +38,31 @@ export default function ProductAdd() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
-  const [form, setForm] = useState<CreateProductDto>({
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [form, setForm] = useState<{
+    name: string;
+    slug: string;
+    description: string;
+    price: string;
+    sku: string;
+    unit: ProductUnit;
+    imageUrl?: string;
+    isAvailable: boolean;
+    categoryId: string;
+    brandId: string;
+  }>({
     name: "",
     slug: "",
     description: "",
-    price: 0,
+    price: "0",
     sku: "",
     unit: "PIECE" as ProductUnit,
-    imageUrl: null,
+    imageUrl: undefined,
     isAvailable: true,
     categoryId: "",
-    subCategoryId: "",
-    brandId: null,
+    brandId: "",
   });
 
   useEffect(() => {
@@ -64,7 +78,23 @@ export default function ProductAdd() {
       }
     };
 
+    const fetchBrands = async () => {
+      setLoadingBrands(true);
+      try {
+        const response = await brandService.getBrands({
+          page: 1,
+          pageSize: 100,
+        });
+        setBrands(response.data);
+      } catch (error) {
+        console.error("Failed to fetch brands:", error);
+      } finally {
+        setLoadingBrands(false);
+      }
+    };
+
     fetchCategories();
+    fetchBrands();
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
@@ -75,19 +105,19 @@ export default function ProductAdd() {
         name: form.name,
         slug: form.slug,
         description: form.description,
-        price: form.price.toString(), // Convert to string for decimal validation
+        price: form.price,
         sku: form.sku,
         unit: form.unit,
         isAvailable: form.isAvailable,
         categoryId: form.categoryId,
+        brandId: form.brandId,
         // Only include imageUrl if it has a value
-        ...(form.imageUrl && { imageUrl: form.imageUrl }),
-        // Only include brandId if it has a value
-        ...(form.brandId &&
-          form.brandId.trim() !== "" && { brandId: form.brandId }),
+        ...(form.imageUrl &&
+          form.imageUrl.trim() !== "" && { imageUrl: form.imageUrl }),
       };
       console.log("Form data before submission:", form);
       console.log("Selected category ID:", form.categoryId);
+      console.log("Selected brand ID:", form.brandId);
       console.log("Payload being sent:", payload);
       await productService.createProduct(payload);
       navigate("/products");
@@ -139,7 +169,7 @@ export default function ProductAdd() {
               step="0.01"
               value={form.price}
               onChange={(e) =>
-                setForm({ ...form, price: Number(e.target.value) })
+                setForm({ ...form, price: e.target.value || "0" })
               }
               style={inputStyle()}
               required
@@ -184,33 +214,33 @@ export default function ProductAdd() {
             </select>
           </label>
           <label>
-            <div>Sub Category ID (UUID)</div>
-            <input
-              value={form.subCategoryId}
-              onChange={(e) =>
-                setForm({ ...form, subCategoryId: e.target.value })
-              }
-              style={inputStyle()}
-              placeholder="e.g., 123e4567-e89b-12d3-a456-426614174001"
-              required
-            />
-          </label>
-          <label>
-            <div>Brand ID</div>
-            <input
+            <div>Brand</div>
+            <select
               value={form.brandId ?? ""}
               onChange={(e) =>
-                setForm({ ...form, brandId: e.target.value || null })
+                setForm({ ...form, brandId: e.target.value || "" })
               }
               style={inputStyle()}
-            />
+              required
+              disabled={loadingBrands}
+            >
+              <option value="">Select a brand</option>
+              {brands.map((brand) => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             <div>Image URL</div>
             <input
               value={form.imageUrl ?? ""}
               onChange={(e) =>
-                setForm({ ...form, imageUrl: e.target.value || null })
+                setForm({
+                  ...form,
+                  imageUrl: e.target.value || undefined,
+                })
               }
               style={inputStyle()}
             />
@@ -220,7 +250,10 @@ export default function ProductAdd() {
             <select
               value={form.isAvailable.toString()}
               onChange={(e) =>
-                setForm({ ...form, isAvailable: e.target.value === "true" })
+                setForm({
+                  ...form,
+                  isAvailable: e.target.value === "true",
+                })
               }
               style={inputStyle()}
             >

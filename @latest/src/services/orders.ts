@@ -48,7 +48,19 @@ class OrderService {
             const data = await response.json();
             
             // Extract the actual data from the wrapped response
-            return data.data || data;
+            // API returns: { success: true, data: [...], metadata: { total, page, limit } }
+            if (data && typeof data === 'object' && 'data' in data) {
+                return {
+                    data: data.data || [],
+                    total: data.metadata?.total || data.data?.length || 0
+                };
+            }
+            
+            // Fallback: if data is already an array
+            return {
+                data: Array.isArray(data) ? data : [],
+                total: Array.isArray(data) ? data.length : 0
+            };
         } catch (error) {
             console.error('Get orders error:', error);
             throw error;
@@ -110,7 +122,19 @@ class OrderService {
             const data = await response.json();
             
             // Extract the actual data from the wrapped response
-            return data.data || data;
+            // API returns: { success: true, data: [...], metadata: { total, page, limit } }
+            if (data && typeof data === 'object' && 'data' in data) {
+                return {
+                    data: data.data || [],
+                    total: data.metadata?.total || data.data?.length || 0
+                };
+            }
+            
+            // Fallback: if data is already an array
+            return {
+                data: Array.isArray(data) ? data : [],
+                total: Array.isArray(data) ? data.length : 0
+            };
         } catch (error) {
             console.error('Get user orders error:', error);
             throw error;
@@ -132,7 +156,13 @@ class OrderService {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `Failed to create order: ${response.status} ${response.statusText}`);
+                // If backend returns validation errors array, include them in the error message
+                const errorMessage = errorData.message || `Failed to create order: ${response.status} ${response.statusText}`;
+                const validationErrors = errorData.errors;
+                if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+                    throw new Error(`${errorMessage}: ${validationErrors.join(', ')}`);
+                }
+                throw new Error(errorMessage);
             }
 
             const responseData = await response.json();
