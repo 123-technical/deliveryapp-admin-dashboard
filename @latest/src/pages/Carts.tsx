@@ -27,7 +27,6 @@ import type {
   CartWithItems,
   CartItem,
   CartsQuery,
-  CreateCartDto,
   AddCartItemDto,
   UpdateCartItemDto,
 } from "../types/cart";
@@ -46,13 +45,10 @@ const Carts = () => {
     sortBy?: keyof Cart;
     sortOrder?: "ascend" | "descend";
   }>({});
-  const [isCreateCartModalVisible, setIsCreateCartModalVisible] =
-    useState(false);
   const [isAddItemModalVisible, setIsAddItemModalVisible] = useState(false);
   const [isEditItemModalVisible, setIsEditItemModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
   const [selectedCart, setSelectedCart] = useState<CartWithItems | null>(null);
-  const [createCartForm] = Form.useForm();
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const { user } = useAuth();
@@ -148,72 +144,7 @@ const Carts = () => {
     fetchCarts();
   }, [fetchCarts]);
 
-  const handleCreateCart = () => {
-    createCartForm.resetFields();
-    setIsCreateCartModalVisible(true);
-  };
-
-  const handleCreateCartModalOk = async () => {
-    try {
-      const values = await createCartForm.validateFields();
-      const userId = values.userId;
-
-      // Check if cart already exists for this user
-      try {
-        await cartService.getCart(userId);
-        message.info("Cart already exists for this user");
-        setIsCreateCartModalVisible(false);
-        createCartForm.resetFields();
-        // Refresh by fetching the specific cart instead of calling getCarts
-        await refreshCartList(userId);
-        return;
-      } catch {
-        // Cart doesn't exist, create it
-        // Since POST /api/v1/carts returns 404, we'll use the add item endpoint
-        // which creates the cart automatically when adding the first item
-        if (values.productId && values.quantity) {
-          // Add item to create cart (this endpoint works based on successful API test)
-          // Ensure quantity is a number, not a string
-          const itemData: AddCartItemDto = {
-            productId: values.productId,
-            quantity: Number(values.quantity),
-          };
-
-          await cartService.addItemToCart(userId, itemData);
-          message.success(
-            `Cart created successfully with ${itemData.quantity} item(s)`
-          );
-          setIsCreateCartModalVisible(false);
-          createCartForm.resetFields();
-          // Add a small delay to ensure backend has saved the data
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          // Refresh by fetching the specific cart instead of calling getCarts
-          await refreshCartList(userId);
-        } else {
-          // No product provided, try direct cart creation as fallback
-          try {
-            const cartData: CreateCartDto = { userId };
-            await cartService.createCart(cartData);
-            message.success("Cart created successfully");
-            setIsCreateCartModalVisible(false);
-            createCartForm.resetFields();
-            // Refresh by fetching the specific cart instead of calling getCarts
-            await refreshCartList(userId);
-          } catch (createError) {
-            console.error("Failed to create cart:", createError);
-            message.error(
-              "Failed to create empty cart. Please provide a Product ID and Quantity to create the cart with an initial item."
-            );
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Failed to create cart:", error);
-      message.error("Failed to create cart");
-    }
-  };
-
-  // Helper function to refresh cart list after creation
+  // Helper function to refresh cart list after operations
   // Uses getCart instead of getCarts since getCarts endpoint may not exist
   const refreshCartList = async (userId: string) => {
     try {
@@ -242,11 +173,6 @@ const Carts = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCreateCartModalCancel = () => {
-    setIsCreateCartModalVisible(false);
-    createCartForm.resetFields();
   };
 
   const handleAddItem = (cart: CartWithItems) => {
@@ -592,15 +518,6 @@ const Carts = () => {
           <Text type="secondary">
             Manage and track all shopping carts in the system
           </Text>
-          {isAdmin && (
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreateCart}
-            >
-              Create Cart
-            </Button>
-          )}
         </div>
       </div>
 
@@ -763,81 +680,6 @@ const Carts = () => {
             >
               <InputNumber
                 placeholder="Enter quantity"
-                min={1}
-                style={{ width: "100%" }}
-              />
-            </Form.Item>
-          </Form>
-        </Modal>
-      )}
-
-      {/* Create Cart Modal */}
-      {isAdmin && (
-        <Modal
-          title="Create Cart"
-          open={isCreateCartModalVisible}
-          onOk={handleCreateCartModalOk}
-          onCancel={handleCreateCartModalCancel}
-          okText="Create"
-          cancelText="Cancel"
-          width={600}
-        >
-          <Form form={createCartForm} layout="vertical" name="createCartForm">
-            <Form.Item
-              name="userId"
-              label="User ID"
-              rules={[
-                { required: true, message: "Please enter user ID!" },
-                {
-                  pattern:
-                    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-                  message: "Please enter a valid UUID!",
-                },
-              ]}
-            >
-              <Input placeholder="Enter user UUID" />
-            </Form.Item>
-            <Form.Item
-              name="productId"
-              label="Product ID (Optional)"
-              tooltip="If provided, this item will be added to the cart when it's created"
-              rules={[
-                {
-                  pattern:
-                    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-                  message: "Please enter a valid UUID!",
-                },
-              ]}
-            >
-              <Input placeholder="Enter product UUID (optional)" />
-            </Form.Item>
-            <Form.Item
-              name="quantity"
-              label="Quantity (Optional)"
-              tooltip="Required if Product ID is provided"
-              rules={[
-                ({ getFieldValue }) => ({
-                  validator: (_, value) => {
-                    const productId = getFieldValue("productId");
-                    if (productId && !value) {
-                      return Promise.reject(
-                        new Error(
-                          "Quantity is required when Product ID is provided!"
-                        )
-                      );
-                    }
-                    if (value && value < 1) {
-                      return Promise.reject(
-                        new Error("Quantity must be at least 1!")
-                      );
-                    }
-                    return Promise.resolve();
-                  },
-                }),
-              ]}
-            >
-              <InputNumber
-                placeholder="Enter quantity (optional)"
                 min={1}
                 style={{ width: "100%" }}
               />
