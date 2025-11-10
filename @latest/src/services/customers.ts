@@ -45,8 +45,21 @@ export async function fetchCustomers(params: CustomersQuery): Promise<CustomersR
     queryParams.append('page', params.page.toString());
     queryParams.append('limit', params.pageSize.toString());
     
-    // Build filters object only for date filters if provided
-    const filters: Record<string, { gte?: string; lte?: string }> = {};
+    // Build filters object - status and date filters
+    const filters: Record<string, { eq?: null; ne?: null; gte?: string; lte?: string }> = {};
+    
+    // Add status filter if provided
+    // Backend only has deletedAt field - active = null, inactive/blocked = not null
+    if (params.status && params.status !== 'all') {
+      if (params.status === 'active') {
+        // Active users have deletedAt === null
+        filters.deletedAt = { eq: null };
+      } else {
+        // Both 'blocked' and 'inactive' map to deletedAt !== null
+        // Backend doesn't distinguish between blocked and inactive
+        filters.deletedAt = { ne: null };
+      }
+    }
     
     // Add date filters if provided
     if (params.startDate || params.endDate) {
@@ -63,9 +76,17 @@ export async function fetchCustomers(params: CustomersQuery): Promise<CustomersR
       queryParams.append('filters', JSON.stringify(filters));
     }
     
-    if (params.search) queryParams.append('search', params.search);
-    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
-    if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+    // Add search parameter
+    if (params.search) {
+      queryParams.append('search', params.search);
+    }
+    
+    // Build sort object - API expects { "fieldName": "asc" | "desc" }
+    if (params.sortBy) {
+      const sortOrder = params.sortOrder === 'ascend' ? 'asc' : 'desc';
+      const sortObject = { [params.sortBy]: sortOrder };
+      queryParams.append('sort', JSON.stringify(sortObject));
+    }
 
     const response = await fetch(`${API_BASE_URL}/api/v1/users?${queryParams}`, {
       method: 'GET',

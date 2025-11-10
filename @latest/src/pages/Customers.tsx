@@ -345,11 +345,15 @@ export default function Customers() {
             },
           }}
           onChange={(_pagination, _filters, sorter) => {
-            if (!Array.isArray(sorter)) {
+            // Handle backend sorting - don't do frontend sorting
+            if (!Array.isArray(sorter) && sorter.field && sorter.order) {
               setSorter({
                 sortBy: (sorter.field as keyof Customer) || undefined,
                 sortOrder: sorter.order || undefined,
               });
+            } else if (!Array.isArray(sorter) && !sorter.field) {
+              // Clear sorting when user clicks to remove sort
+              setSorter({});
             }
           }}
         />
