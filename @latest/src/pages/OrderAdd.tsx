@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import type { CreateOrderDto } from "../types/order";
 import { orderService } from "../services/orders";
 import { productService } from "../services/products";
 import { authService } from "../services/auth";
+import { fetchCustomers } from "../services/customers";
 import type { Product } from "../types/product";
-import { message } from "antd";
+import { message, Select } from "antd";
 
 function inputStyle() {
   return {
@@ -65,6 +66,7 @@ export default function OrderAdd() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [form, setForm] = useState<{
     userId: string;
     deliveryAddressId: string;
@@ -80,7 +82,6 @@ export default function OrderAdd() {
   });
 
   useEffect(() => {
-    fetchUsers();
     fetchProducts();
   }, []);
 
@@ -93,56 +94,50 @@ export default function OrderAdd() {
     }
   }, [form.userId]);
 
-  const fetchUsers = async () => {
+  // Debounced search for customers
+  const searchCustomers = useCallback(async (searchTerm: string) => {
+    if (!searchTerm || searchTerm.trim().length < 1) {
+      setUsers([]);
+      return;
+    }
+
     setLoadingUsers(true);
     try {
-      const token = authService.getToken();
-      const API_BASE_URL =
-        import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-      const response = await fetch(
-        `${API_BASE_URL}/api/v1/users?role=CUSTOMER&page=1&limit=100`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        }
-      );
+      const response = await fetchCustomers({
+        page: 1,
+        pageSize: 20, // Limit results to 20 for better performance
+        search: searchTerm.trim(),
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        const usersData = data.data || data;
-        setUsers(
-          Array.isArray(usersData)
-            ? usersData.map(
-                (u: {
-                  id: string;
-                  name?: string;
-                  username?: string;
-                  email?: string;
-                }) => ({
-                  id: u.id,
-                  name: u.name || u.username || u.email || "",
-                  email: u.email || "",
-                })
-              )
-            : []
-        );
-      } else {
-        message.warning(
-          "Could not fetch users. Please ensure user selection is available."
-        );
-      }
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-      message.warning(
-        "Could not fetch users. Please ensure user selection is available."
+      const customers = response.data || [];
+      setUsers(
+        customers.map((customer) => ({
+          id: customer.id,
+          name: customer.name || customer.username || customer.email || "",
+          email: customer.email || "",
+        }))
       );
+    } catch (error) {
+      console.error("Failed to search customers:", error);
+      message.error("Failed to search customers");
+      setUsers([]);
     } finally {
       setLoadingUsers(false);
     }
-  };
+  }, []);
+
+  // Debounce search input
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (customerSearchTerm) {
+        searchCustomers(customerSearchTerm);
+      } else {
+        setUsers([]);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [customerSearchTerm, searchCustomers]);
 
   const fetchProducts = async () => {
     setLoadingProducts(true);
@@ -204,12 +199,18 @@ export default function OrderAdd() {
               )
             : []
         );
+      } else if (response.status === 404) {
+        // Endpoint doesn't exist, silently set empty addresses
+        setDeliveryAddresses([]);
       } else {
-        message.warning("Could not fetch delivery addresses for this user.");
+        // Only show warning for other errors (not 404)
+        console.warn("Could not fetch delivery addresses for this user.");
+        setDeliveryAddresses([]);
       }
     } catch (error) {
-      console.error("Failed to fetch delivery addresses:", error);
-      message.warning("Could not fetch delivery addresses for this user.");
+      // Silently handle errors - endpoint may not exist
+      console.warn("Address endpoint not available:", error);
+      setDeliveryAddresses([]);
     } finally {
       setLoadingAddresses(false);
     }
@@ -319,26 +320,44 @@ export default function OrderAdd() {
         >
           <label>
             <div>Customer *</div>
-            <select
-              value={form.userId}
-              onChange={(e) =>
+            <Select
+              showSearch
+              placeholder="Search and select a customer"
+              value={form.userId || undefined}
+              onChange={(value) => {
                 setForm({
                   ...form,
-                  userId: e.target.value,
+                  userId: value,
                   deliveryAddressId: "",
-                })
+                });
+              }}
+              onSearch={(value) => setCustomerSearchTerm(value)}
+              filterOption={false} // We handle filtering on the backend
+              loading={loadingUsers}
+              notFoundContent={
+                loadingUsers
+                  ? "Searching..."
+                  : customerSearchTerm.length < 1
+                  ? "Type to search for customers"
+                  : "No customers found"
               }
-              style={inputStyle()}
-              required
-              disabled={loadingUsers}
+              style={{ width: "100%" }}
+              size="large"
+              allowClear
+              onClear={() => {
+                setForm({
+                  ...form,
+                  userId: "",
+                  deliveryAddressId: "",
+                });
+              }}
             >
-              <option value="">Select a customer</option>
               {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name} ({user.email})
-                </option>
+                <Select.Option key={user.id} value={user.id}>
+                  {user.name} {user.email ? `(${user.email})` : ""}
+                </Select.Option>
               ))}
-            </select>
+            </Select>
           </label>
 
           <label>

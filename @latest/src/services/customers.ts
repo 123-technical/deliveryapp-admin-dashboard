@@ -44,11 +44,26 @@ export async function fetchCustomers(params: CustomersQuery): Promise<CustomersR
     
     queryParams.append('page', params.page.toString());
     queryParams.append('limit', params.pageSize.toString());
-    queryParams.append('role', 'CUSTOMER'); // Always filter by CUSTOMER role
+    
+    // Build filters object only for date filters if provided
+    const filters: Record<string, { gte?: string; lte?: string }> = {};
+    
+    // Add date filters if provided
+    if (params.startDate || params.endDate) {
+      if (params.startDate) {
+        filters.createdAt = { ...filters.createdAt, gte: params.startDate };
+      }
+      if (params.endDate) {
+        filters.createdAt = { ...filters.createdAt, lte: params.endDate };
+      }
+    }
+    
+    // Add filters as JSON string only if there are filters
+    if (Object.keys(filters).length > 0) {
+      queryParams.append('filters', JSON.stringify(filters));
+    }
     
     if (params.search) queryParams.append('search', params.search);
-    if (params.startDate) queryParams.append('startDate', params.startDate);
-    if (params.endDate) queryParams.append('endDate', params.endDate);
     if (params.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
