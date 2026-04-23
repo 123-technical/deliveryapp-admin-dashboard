@@ -1,7 +1,6 @@
 export interface LoginCredentials {
-  mobile?: string;
-  username?: string;
-  password: string;
+  mobile: string;
+  otp: string;
 }
 
 export interface AuthUser {

@@ -3,6 +3,7 @@ import { Form, Input, Button, Card, Typography, Space, App } from "antd";
 import { UserOutlined, LockOutlined, LoginOutlined } from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { LoginCredentials } from "../types/auth";
 
 const { Title, Text } = Typography;
 
@@ -12,7 +13,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { message } = App.useApp();
 
-  const handleLogin = async (values: LoginFormValues) => {
+  const handleLogin = async (values: LoginCredentials) => {
     try {
       setLoading(true);
       await login(values);
@@ -79,37 +80,32 @@ export default function LoginPage() {
           autoComplete="off"
           size="large"
         >
-          {/* <Form.Item
+          <Form.Item
             name="mobile"
             rules={[
-              { required: true, message: "Please enter your Mobile Nummber!" },
+              { required: true, message: "Please enter your mobile number!" },
+              { pattern: /^\d{10}$/, message: "Mobile number must be 10 digits" }
             ]}
           >
             <Input
               prefix={<UserOutlined />}
-              placeholder="Mobile Number"
-              style={{ borderRadius: "6px" }}
-            />
-          </Form.Item> */}
-
-          <Form.Item
-            name="username"
-            rules={[{ required: true, message: "Please enter your username!" }]}
-          >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder="Username"
+              placeholder="10-digit Mobile Number"
+              maxLength={10}
               style={{ borderRadius: "6px" }}
             />
           </Form.Item>
 
           <Form.Item
-            name="password"
-            rules={[{ required: true, message: "Please input your password!" }]}
+            name="otp"
+            rules={[
+              { required: true, message: "Please input your OTP!" },
+              { pattern: /^\d{6}$/, message: "OTP must be 6 digits" }
+            ]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="Password"
+              placeholder="6-digit OTP"
+              maxLength={6}
               style={{ borderRadius: "6px" }}
             />
           </Form.Item>
