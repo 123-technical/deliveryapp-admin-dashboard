@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import type { Product } from "../types/product";
-import { fetchProductById, deleteProduct } from "../services/products";
+import { productService } from "../services/products";
 
 function buttonStyle() {
   return {
@@ -81,7 +81,7 @@ export default function ProductDetail() {
 
       setLoading(true);
       try {
-        const productData = await fetchProductById(id);
+        const productData = await productService.getProductById(id);
         setProduct(productData);
       } catch (error) {
         console.error("Failed to fetch product:", error);
@@ -99,7 +99,7 @@ export default function ProductDetail() {
 
     setDeleting(true);
     try {
-      await deleteProduct(product.id);
+      await productService.deleteProduct(product.id);
       navigate("/products");
     } catch (error) {
       console.error("Failed to delete product:", error);

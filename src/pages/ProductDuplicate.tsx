@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { Product } from "../types/product";
-import { fetchProductById, createProduct } from "../services/products";
+import { productService } from "../services/products";
 
 function inputStyle() {
   return {
@@ -58,7 +58,7 @@ export default function ProductDuplicate() {
 
       setLoading(true);
       try {
-        const product = await fetchProductById(id);
+        const product = await productService.getProductById(id);
         setOriginalProduct(product);
         // Pre-fill form with original product data, but modify SKU to be numerically close
         const originalSku = product.sku;
@@ -158,7 +158,7 @@ export default function ProductDuplicate() {
         rating: undefined,
         reviewsCount: undefined,
       };
-      await createProduct(payload);
+      await productService.createProduct(payload);
       navigate("/products");
     } finally {
       setSaving(false);
