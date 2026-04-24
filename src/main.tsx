@@ -6,7 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ConfigProvider, theme, App as AntApp } from "antd";
 import "antd/dist/reset.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext.tsx";
 
 const queryClient = new QueryClient();
 
@@ -27,5 +27,5 @@ createRoot(document.getElementById("root")!).render(
         </BrowserRouter>
       </ConfigProvider>
     </QueryClientProvider>
-  </StrictMode>
+  </StrictMode>,
 );

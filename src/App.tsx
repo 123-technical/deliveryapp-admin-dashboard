@@ -1,31 +1,31 @@
 import { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import AdminLayout from "./layouts/AdminLayout";
-import ProtectedRoute from "./components/ProtectedRoute";
-import LoginPage from "./pages/Login";
+import AdminLayout from "./layouts/AdminLayout.tsx";
+import ProtectedRoute from "./components/ProtectedRoute.tsx";
+import LoginPage from "./pages/Login.tsx";
 
-const Overview = lazy(() => import("./pages/Overview"));
-const Customers = lazy(() => import("./pages/Customers"));
-const Riders = lazy(() => import("./pages/Riders"));
-const Staffs = lazy(() => import("./pages/Staffs"));
-const Orders = lazy(() => import("./pages/Orders"));
-const OrderAdd = lazy(() => import("./pages/OrderAdd"));
-const Products = lazy(() => import("./pages/Products"));
+const Overview = lazy(() => import("./pages/Overview.tsx"));
+const Customers = lazy(() => import("./pages/Customers.tsx"));
+const Riders = lazy(() => import("./pages/Riders.tsx"));
+const Staffs = lazy(() => import("./pages/Staffs.tsx"));
+const Orders = lazy(() => import("./pages/Orders.tsx"));
+const OrderAdd = lazy(() => import("./pages/OrderAdd.tsx"));
+const Products = lazy(() => import("./pages/Products.tsx"));
 const ProductAdd = lazy(() => import("./pages/ProductAdd.tsx"));
 const ProductEdit = lazy(() => import("./pages/ProductEdit.tsx"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail.tsx"));
 const ProductDuplicate = lazy(() => import("./pages/ProductDuplicate.tsx"));
-const Reports = lazy(() => import("./pages/Reports"));
-const Notifications = lazy(() => import("./pages/Notifications"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Support = lazy(() => import("./pages/Support"));
-const Categories = lazy(() => import("./pages/Categories"));
-const CategoryDetail = lazy(() => import("./pages/CategoryDetail"));
-const Brands = lazy(() => import("./pages/Brands"));
-const BrandDetail = lazy(() => import("./pages/BrandDetail"));
-const Carts = lazy(() => import("./pages/Carts"));
-const OrderDetail = lazy(() => import("./pages/OrderDetail"));
-const CustomerAdd = lazy(() => import("./pages/CustomerAdd"));
+const Reports = lazy(() => import("./pages/Reports.tsx"));
+const Notifications = lazy(() => import("./pages/Notifications.tsx"));
+const Settings = lazy(() => import("./pages/Settings.tsx"));
+const Support = lazy(() => import("./pages/Support.tsx"));
+const Categories = lazy(() => import("./pages/Categories.tsx"));
+const CategoryDetail = lazy(() => import("./pages/CategoryDetail.tsx"));
+const Brands = lazy(() => import("./pages/Brands.tsx"));
+const BrandDetail = lazy(() => import("./pages/BrandDetail.tsx"));
+const Carts = lazy(() => import("./pages/Carts.tsx"));
+const OrderDetail = lazy(() => import("./pages/OrderDetail.tsx"));
+const CustomerAdd = lazy(() => import("./pages/CustomerAdd.tsx"));
 
 function App() {
   return (
