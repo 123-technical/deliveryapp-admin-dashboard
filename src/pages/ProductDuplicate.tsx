@@ -40,16 +40,15 @@ export default function ProductDuplicate() {
   const [form, setForm] = useState({
     name: "",
     sku: "",
-    category: "",
-    subcategory: "",
-    regularPrice: 0,
-    salePrice: undefined as number | undefined,
-    stockQty: 0,
-    status: "active" as Product["status"],
+    slug: "",
+    categoryId: "",
+    subCategoryId: "",
+    price: "",
+    unit: "PIECE" as any,
+    isAvailable: true,
     description: "",
-    brand: "",
-    tags: [] as string[],
-    thumbnailUrl: "",
+    brandId: "",
+    imageUrl: "",
   });
 
   useEffect(() => {
@@ -78,16 +77,15 @@ export default function ProductDuplicate() {
         setForm({
           name: product.name,
           sku: newSku,
-          category: product.category,
-          subcategory: product.subcategory || "",
-          regularPrice: product.regularPrice,
-          salePrice: product.salePrice,
-          stockQty: product.stockQty,
-          status: product.status,
+          slug: product.slug + "-copy",
+          categoryId: product.categoryId,
+          subCategoryId: product.subCategoryId || "",
+          price: product.price,
+          unit: product.unit,
+          isAvailable: product.isAvailable,
           description: product.description || "",
-          brand: product.brand || "",
-          tags: product.tags || [],
-          thumbnailUrl: product.thumbnailUrl || "",
+          brandId: product.brandId || "",
+          imageUrl: product.imageUrl || "",
         });
       } catch (error) {
         console.error("Failed to fetch product:", error);
@@ -116,15 +114,15 @@ export default function ProductDuplicate() {
             return `${originalSku}1`;
           }
         })() ||
-      form.category !== originalProduct.category ||
-      form.subcategory !== (originalProduct.subcategory || "") ||
-      form.regularPrice !== originalProduct.regularPrice ||
-      form.salePrice !== originalProduct.salePrice ||
-      form.stockQty !== originalProduct.stockQty ||
-      form.status !== originalProduct.status ||
+      form.slug !== originalProduct.slug + "-copy" ||
+      form.categoryId !== originalProduct.categoryId ||
+      form.subCategoryId !== (originalProduct.subCategoryId || "") ||
+      form.price !== originalProduct.price ||
+      form.unit !== originalProduct.unit ||
+      form.isAvailable !== originalProduct.isAvailable ||
       form.description !== (originalProduct.description || "") ||
-      form.brand !== (originalProduct.brand || "") ||
-      form.thumbnailUrl !== (originalProduct.thumbnailUrl || ""));
+      form.brandId !== (originalProduct.brandId || "") ||
+      form.imageUrl !== (originalProduct.imageUrl || ""));
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -132,31 +130,18 @@ export default function ProductDuplicate() {
 
     setSaving(true);
     try {
-      const payload: Omit<Product, "id" | "lastModifiedAt" | "stockStatus"> = {
+      const payload = {
         name: form.name,
         sku: form.sku,
-        description: form.description || undefined,
-        brand: form.brand || undefined,
-        category: form.category || "Uncategorized",
-        subcategory: form.subcategory || undefined,
-        tags: form.tags.length ? form.tags : undefined,
-        thumbnailUrl: form.thumbnailUrl || undefined,
-        images: [],
-        regularPrice: Number(form.regularPrice) || 0,
-        salePrice: form.salePrice ? Number(form.salePrice) : undefined,
-        pricingTiers: undefined,
-        stockQty: Number(form.stockQty) || 0,
-        status: form.status,
-        weightKg: undefined,
-        dimensionsCm: undefined,
-        fragile: false,
-        seoTitle: undefined,
-        seoDescription: undefined,
-        barcode: undefined,
-        supplier: undefined,
-        vendor: undefined,
-        rating: undefined,
-        reviewsCount: undefined,
+        slug: form.slug,
+        description: form.description,
+        price: form.price,
+        unit: form.unit,
+        isAvailable: form.isAvailable,
+        categoryId: form.categoryId || "Uncategorized",
+        subCategoryId: form.subCategoryId,
+        brandId: form.brandId,
+        imageUrl: form.imageUrl,
       };
       await productService.createProduct(payload);
       navigate("/products");
@@ -228,77 +213,87 @@ export default function ProductDuplicate() {
             />
           </label>
           <label>
-            <div>Category</div>
+            <div>Slug</div>
             <input
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              value={form.slug}
+              onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              style={inputStyle()}
+              required
+            />
+          </label>
+          <label>
+            <div>Category ID</div>
+            <input
+              value={form.categoryId}
+              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
               style={inputStyle()}
             />
           </label>
           <label>
-            <div>Subcategory</div>
+            <div>Subcategory ID</div>
             <input
-              value={form.subcategory}
+              value={form.subCategoryId}
               onChange={(e) =>
-                setForm({ ...form, subcategory: e.target.value })
+                setForm({ ...form, subCategoryId: e.target.value })
               }
               style={inputStyle()}
             />
           </label>
           <label>
-            <div>Regular Price</div>
+            <div>Price</div>
             <input
-              type="number"
-              step="0.01"
-              value={form.regularPrice}
+              type="text"
+              value={form.price}
               onChange={(e) =>
-                setForm({ ...form, regularPrice: Number(e.target.value) })
+                setForm({ ...form, price: e.target.value })
               }
               style={inputStyle()}
             />
           </label>
           <label>
-            <div>Sale Price</div>
+            <div>Unit</div>
             <input
-              type="number"
-              step="0.01"
-              value={form.salePrice ?? ""}
+              value={form.unit}
               onChange={(e) =>
-                setForm({
-                  ...form,
-                  salePrice:
-                    e.target.value === "" ? undefined : Number(e.target.value),
-                })
+                setForm({ ...form, unit: e.target.value as any })
               }
               style={inputStyle()}
             />
           </label>
           <label>
-            <div>Stock Qty</div>
+            <div>Brand ID</div>
             <input
-              type="number"
-              value={form.stockQty}
+              value={form.brandId}
               onChange={(e) =>
-                setForm({ ...form, stockQty: Number(e.target.value) })
+                setForm({ ...form, brandId: e.target.value })
               }
               style={inputStyle()}
             />
           </label>
           <label>
-            <div>Status</div>
+            <div>Image URL</div>
+            <input
+              value={form.imageUrl}
+              onChange={(e) =>
+                setForm({ ...form, imageUrl: e.target.value })
+              }
+              style={inputStyle()}
+            />
+          </label>
+          <label>
+            <div>Availability</div>
             <select
-              value={form.status}
+              value={form.isAvailable ? "true" : "false"}
               onChange={(e) =>
                 setForm({
                   ...form,
-                  status: e.target.value as Product["status"],
+                  isAvailable: e.target.value === "true",
                 })
               }
               style={{ ...inputStyle(), height: 38 }}
             >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="out_of_stock">Out of Stock</option>
+              <option value="true">Available</option>
+              <option value="false">Unavailable</option>
             </select>
           </label>
         </div>

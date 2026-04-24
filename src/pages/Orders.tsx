@@ -29,7 +29,6 @@ import type {
   OrderWithItems,
   OrderStatus,
   OrdersQuery,
-  OrdersResponse,
   UpdateOrderDto,
 } from "../types/order";
 
@@ -169,18 +168,7 @@ const Orders = () => {
     navigate(`/order/${orderId}`);
   };
 
-  const getStatusColor = (status: OrderStatus) => {
-    const colors: Record<OrderStatus, string> = {
-      PENDING: "orange",
-      CONFIRMED: "blue",
-      PROCESSING: "cyan",
-      SHIPPED: "purple",
-      DELIVERED: "green",
-      CANCELLED: "red",
-      REFUNDED: "volcano",
-    };
-    return colors[status] || "default";
-  };
+
 
   const columns = [
     {
@@ -202,7 +190,7 @@ const Orders = () => {
       dataIndex: "orderNumber",
       key: "orderNumber",
       width: 140,
-      fixed: "left",
+      fixed: "left" as const,
       ellipsis: true,
       render: (orderNumber: string, record: OrderWithItems) => (
         <Button
@@ -426,7 +414,7 @@ const Orders = () => {
       title: "Actions",
       key: "actions",
       width: 180,
-      fixed: "right",
+      fixed: "right" as const,
       render: (_: unknown, record: OrderWithItems) => (
         <Space size="small">
           <Button
@@ -587,7 +575,7 @@ const Orders = () => {
               setPageSize(ps);
             },
           }}
-          onChange={(pagination, _filters, sorter) => {
+          onChange={(_pagination, _filters, sorter) => {
             if (!Array.isArray(sorter)) {
               setSorter({
                 sortBy: (sorter.field as keyof Order) || undefined,

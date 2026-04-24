@@ -2,14 +2,13 @@ import { Tag } from "antd";
 import type { OrderStatus } from "../types/order";
 
 const colorMap: Record<OrderStatus, string> = {
-  placed: "default",
-  packed: "processing",
-  assigned: "processing",
-  picking: "cyan",
-  delivering: "geekblue",
-  delivered: "green",
-  cancelled: "red",
-  refunded: "gold",
+  PENDING: "orange",
+  CONFIRMED: "blue",
+  PROCESSING: "cyan",
+  SHIPPED: "purple",
+  DELIVERED: "green",
+  CANCELLED: "red",
+  REFUNDED: "gold",
 };
 
 export default function OrderStatusTag({ status }: { status: OrderStatus }) {

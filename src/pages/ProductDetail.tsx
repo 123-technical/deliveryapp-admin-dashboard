@@ -19,50 +19,19 @@ function buttonStyle() {
   } as const;
 }
 
-function StatusPill({ value }: { value: Product["status"] }) {
-  const colors = {
-    active: { bg: "#ecfdf5", color: "#065f46" },
-    inactive: { bg: "#f3f4f6", color: "#6b7280" },
-    out_of_stock: { bg: "#fee2e2", color: "#b91c1c" },
-  };
-  const { bg, color } = colors[value];
+function StatusPill({ value }: { value: boolean }) {
   return (
     <span
       style={{
         padding: "4px 12px",
         borderRadius: 999,
-        background: bg,
-        color,
+        background: value ? "#ecfdf5" : "#fee2e2",
+        color: value ? "#065f46" : "#b91c1c",
         fontSize: 12,
-        textTransform: "capitalize",
         fontWeight: 600,
       }}
     >
-      {value.replace("_", " ")}
-    </span>
-  );
-}
-
-function StockPill({ value }: { value: Product["stockStatus"] }) {
-  const colors = {
-    in_stock: { bg: "#ecfdf5", color: "#065f46" },
-    low_stock: { bg: "#fef3c7", color: "#b45309" },
-    out_of_stock: { bg: "#fee2e2", color: "#b91c1c" },
-  };
-  const { bg, color } = colors[value];
-  return (
-    <span
-      style={{
-        padding: "4px 12px",
-        borderRadius: 999,
-        background: bg,
-        color,
-        fontSize: 12,
-        textTransform: "capitalize",
-        fontWeight: 600,
-      }}
-    >
-      {value.replace("_", " ")}
+      {value ? "Available" : "Unavailable"}
     </span>
   );
 }
@@ -204,6 +173,16 @@ export default function ProductDetail() {
                 <label
                   style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
                 >
+                  Slug
+                </label>
+                <div style={{ fontSize: 14, color: "#111827" }}>
+                  {product.slug}
+                </div>
+              </div>
+              <div>
+                <label
+                  style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
+                >
                   SKU
                 </label>
                 <div style={{ fontSize: 14, color: "#111827" }}>
@@ -214,30 +193,40 @@ export default function ProductDetail() {
                 <label
                   style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
                 >
-                  Brand
+                  Unit
                 </label>
                 <div style={{ fontSize: 14, color: "#111827" }}>
-                  {product.brand || "—"}
+                  {product.unit}
                 </div>
               </div>
               <div>
                 <label
                   style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
                 >
-                  Category
+                  Brand ID
                 </label>
                 <div style={{ fontSize: 14, color: "#111827" }}>
-                  {product.category}
+                  {product.brandId || "—"}
                 </div>
               </div>
               <div>
                 <label
                   style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
                 >
-                  Subcategory
+                  Category ID
                 </label>
                 <div style={{ fontSize: 14, color: "#111827" }}>
-                  {product.subcategory || "—"}
+                  {product.categoryId}
+                </div>
+              </div>
+              <div>
+                <label
+                  style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
+                >
+                  Subcategory ID
+                </label>
+                <div style={{ fontSize: 14, color: "#111827" }}>
+                  {product.subCategoryId || "—"}
                 </div>
               </div>
               <div>
@@ -269,44 +258,14 @@ export default function ProductDetail() {
                 <label
                   style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
                 >
-                  Regular Price
+                  Price
                 </label>
                 <div
                   style={{ fontSize: 18, fontWeight: 600, color: "#111827" }}
                 >
-                  ${product.regularPrice}
+                  ${product.price}
                 </div>
               </div>
-              {product.salePrice && (
-                <div>
-                  <label
-                    style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
-                  >
-                    Sale Price
-                  </label>
-                  <div
-                    style={{ fontSize: 18, fontWeight: 600, color: "#dc2626" }}
-                  >
-                    ${product.salePrice}
-                  </div>
-                </div>
-              )}
-              {product.pricingTiers && product.pricingTiers.length > 0 && (
-                <div>
-                  <label
-                    style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
-                  >
-                    Bulk Pricing
-                  </label>
-                  <div style={{ fontSize: 14, color: "#111827" }}>
-                    {product.pricingTiers.map((tier, index) => (
-                      <div key={index} style={{ marginBottom: 4 }}>
-                        {tier.minQty}+ units: ${tier.price}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -330,143 +289,39 @@ export default function ProductDetail() {
                 <label
                   style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
                 >
-                  Product Status
+                  Availability
                 </label>
                 <div style={{ marginTop: 4 }}>
-                  <StatusPill value={product.status} />
+                  <StatusPill value={product.isAvailable} />
                 </div>
               </div>
               <div>
                 <label
                   style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
                 >
-                  Stock Status
-                </label>
-                <div style={{ marginTop: 4 }}>
-                  <StockPill value={product.stockStatus} />
-                </div>
-              </div>
-              <div>
-                <label
-                  style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
-                >
-                  Stock Quantity
-                </label>
-                <div
-                  style={{ fontSize: 18, fontWeight: 600, color: "#111827" }}
-                >
-                  {product.stockQty}
-                </div>
-              </div>
-              <div>
-                <label
-                  style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
-                >
-                  Last Modified
+                  Created At
                 </label>
                 <div style={{ fontSize: 14, color: "#111827" }}>
-                  {dayjs(product.lastModifiedAt).format("YYYY-MM-DD HH:mm")}
+                  {dayjs(product.createdAt).format("YYYY-MM-DD HH:mm")}
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              background: "#fff",
-              padding: 20,
-              borderRadius: 12,
-              border: "1px solid #e5e7eb",
-            }}
-          >
-            <h3 style={{ margin: "0 0 16px 0", color: "#111827" }}>
-              Additional Details
-            </h3>
-            <div style={{ display: "grid", gap: 12 }}>
-              {product.weightKg && (
-                <div>
-                  <label
-                    style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
-                  >
-                    Weight
-                  </label>
-                  <div style={{ fontSize: 14, color: "#111827" }}>
-                    {product.weightKg} kg
-                  </div>
-                </div>
-              )}
-              {product.dimensionsCm && (
-                <div>
-                  <label
-                    style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
-                  >
-                    Dimensions
-                  </label>
-                  <div style={{ fontSize: 14, color: "#111827" }}>
-                    {product.dimensionsCm.length} × {product.dimensionsCm.width}{" "}
-                    × {product.dimensionsCm.height} cm
-                  </div>
-                </div>
-              )}
               <div>
                 <label
                   style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
                 >
-                  Fragile
+                  Last Updated
                 </label>
                 <div style={{ fontSize: 14, color: "#111827" }}>
-                  {product.fragile ? "Yes" : "No"}
+                  {dayjs(product.updatedAt).format("YYYY-MM-DD HH:mm")}
                 </div>
               </div>
-              {product.barcode && (
-                <div>
-                  <label
-                    style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
-                  >
-                    Barcode
-                  </label>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      color: "#111827",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {product.barcode}
-                  </div>
-                </div>
-              )}
-              {product.supplier && (
-                <div>
-                  <label
-                    style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
-                  >
-                    Supplier
-                  </label>
-                  <div style={{ fontSize: 14, color: "#111827" }}>
-                    {product.supplier}
-                  </div>
-                </div>
-              )}
-              {product.vendor && (
-                <div>
-                  <label
-                    style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}
-                  >
-                    Vendor
-                  </label>
-                  <div style={{ fontSize: 14, color: "#111827" }}>
-                    {product.vendor}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Product Image */}
-      {product.thumbnailUrl && (
+      {product.imageUrl && (
         <div
           style={{
             background: "#fff",
@@ -480,7 +335,7 @@ export default function ProductDetail() {
             Product Image
           </h3>
           <img
-            src={product.thumbnailUrl}
+            src={product.imageUrl}
             alt={product.name}
             style={{
               width: 200,
@@ -490,38 +345,6 @@ export default function ProductDetail() {
               border: "1px solid #e5e7eb",
             }}
           />
-        </div>
-      )}
-
-      {/* Tags */}
-      {product.tags && product.tags.length > 0 && (
-        <div
-          style={{
-            background: "#fff",
-            padding: 20,
-            borderRadius: 12,
-            border: "1px solid #e5e7eb",
-            marginTop: 16,
-          }}
-        >
-          <h3 style={{ margin: "0 0 16px 0", color: "#111827" }}>Tags</h3>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {product.tags.map((tag, index) => (
-              <span
-                key={index}
-                style={{
-                  padding: "4px 8px",
-                  background: "#f3f4f6",
-                  color: "#374151",
-                  borderRadius: 6,
-                  fontSize: 12,
-                  fontWeight: 500,
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
         </div>
       )}
 

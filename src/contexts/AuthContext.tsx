@@ -69,8 +69,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // debugger;
       setAuthState({
         user: response.user,
-        token: response.token,
-        refreshToken: response.refreshToken,
+        token: response.accessToken,
+        refreshToken: null,
         isAuthenticated: true,
         isLoading: false,
       });

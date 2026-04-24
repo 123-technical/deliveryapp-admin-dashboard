@@ -35,8 +35,8 @@ const MOCK_RIDERS: Rider[] = Array.from({ length: 120 }).map(() => {
     joinDate: joinDate.toISOString(),
     lastActiveAt: lastActiveAt?.toISOString(),
     currentLocation: faker.helpers.maybe(() => ({
-      latitude: parseFloat(faker.location.latitude()),
-      longitude: parseFloat(faker.location.longitude()),
+      latitude: faker.location.latitude(),
+      longitude: faker.location.longitude(),
       address: faker.location.streetAddress()
     }), { probability: 0.7 }),
     rating: faker.number.float({ min: 1, max: 5, fractionDigits: 1 }),

@@ -23,7 +23,7 @@ import {
 } from "@ant-design/icons";
 import { orderService } from "../services/orders";
 import { useAuth } from "../contexts/AuthContext";
-import type { OrderWithItems, OrderItem, UpdateOrderDto } from "../types/order";
+import type { OrderWithItems, UpdateOrderDto } from "../types/order";
 
 const { Title, Text } = Typography;
 
