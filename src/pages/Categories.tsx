@@ -4,7 +4,6 @@ import {
   Button,
   Table,
   Popconfirm,
-  message,
   Space,
   Form,
   Modal,
@@ -12,8 +11,9 @@ import {
   Card,
   Image,
   Typography,
+  App,
 } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from "@ant-design/icons";
 import { categoryService } from "../services/categories";
 import { useAuth } from "../contexts/AuthContext";
 import type { Category } from "../types/category";
@@ -23,13 +23,33 @@ const { Title } = Typography;
 const Categories = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { message } = App.useApp();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
+
+  // Debounce the search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearch(searchInput);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchInput]);
+
+  // Client-side filtering
+  const filteredCategories = categories.filter((cat) =>
+    cat.name.toLowerCase().includes(search.toLowerCase()) ||
+    cat.slug.toLowerCase().includes(search.toLowerCase())
+  );
 
   // Check if user has admin privileges
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
@@ -262,37 +282,35 @@ const Categories = () => {
       fixed: "right" as const,
       render: (_: unknown, record: Category) => (
         <Space size="small">
-          {isAdmin && (
-            <>
-              <Button
-                type="primary"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => handleEdit(record)}
-                disabled={!!record.deletedAt}
-              >
-                Edit
-              </Button>
-              <Popconfirm
-                title="Delete Category"
-                description="Are you sure you want to delete this category?"
-                onConfirm={() => handleDelete(record.id)}
-                okText="Yes"
-                cancelText="No"
-                okType="danger"
-                disabled={!!record.deletedAt}
-              >
-                <Button
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  disabled={!!record.deletedAt}
-                >
-                  Delete
-                </Button>
-              </Popconfirm>
-            </>
-          )}
+          <Button
+            type="primary"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+            disabled={!isAdmin || !!record.deletedAt}
+            title={!isAdmin ? "You do not have permission to edit categories" : undefined}
+          >
+            Edit
+          </Button>
+          <Popconfirm
+            title="Delete Category"
+            description="Are you sure you want to delete this category?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Yes"
+            cancelText="No"
+            okType="danger"
+            disabled={!isAdmin || !!record.deletedAt}
+          >
+            <Button
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+              disabled={!isAdmin || !!record.deletedAt}
+              title={!isAdmin ? "You do not have permission to delete categories" : undefined}
+            >
+              Delete
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -311,21 +329,32 @@ const Categories = () => {
         <Title level={2} style={{ margin: 0 }}>
           Categories Management
         </Title>
-        {isAdmin && (
+        <Space>
+          <Input
+            placeholder="Search categories..."
+            allowClear
+            prefix={<SearchOutlined style={{ color: "rgba(0,0,0,.45)" }} />}
+            size="large"
+            style={{ width: 300 }}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={handleAddCategory}
+            disabled={!isAdmin}
+            title={!isAdmin ? "You do not have permission to add categories" : undefined}
           >
             Add Category
           </Button>
-        )}
+        </Space>
       </div>
 
       <Card>
         <Table
           columns={columns}
-          dataSource={categories}
+          dataSource={filteredCategories}
           loading={loading}
           rowKey="id"
           scroll={{ x: 1400 }}

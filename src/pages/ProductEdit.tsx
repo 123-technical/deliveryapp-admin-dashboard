@@ -6,7 +6,7 @@ import { categoryService } from "../services/categories";
 import { brandService } from "../services/brands";
 import type { Category } from "../types/category";
 import type { Brand } from "../types/brand";
-import { message } from "antd";
+import { App } from "antd";
 
 function inputStyle() {
   return {
@@ -39,6 +39,7 @@ function buttonStyle(disabled = false) {
 export default function ProductEdit() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { message } = App.useApp();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);

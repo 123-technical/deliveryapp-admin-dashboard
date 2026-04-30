@@ -26,12 +26,9 @@ class AuthService {
             }
 
             const responseData = await response.json();
-            console.log('Full backend response:', responseData);
             
             // Extract the actual data from the wrapped response
             const data = responseData.data;
-            console.log('Extracted data:', data);
-            console.log('Data.user:', data.user);
 
             const mappedData = {
                 accessToken: data.accessToken,

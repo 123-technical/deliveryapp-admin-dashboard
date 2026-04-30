@@ -6,10 +6,10 @@ import {
   Button,
   Space,
   Input,
-  message,
   Image,
   Typography,
   Tag,
+  App,
 } from "antd";
 import {
   PlusOutlined,
@@ -27,12 +27,28 @@ const { Search } = Input;
 const Products = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { message } = App.useApp();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+
+  // Debounce the search input to provide instant search without overloading the backend
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (search !== searchInput) {
+        setSearch(searchInput);
+        setPage(1);
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchInput, search]);
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
@@ -294,21 +310,21 @@ const Products = () => {
             size="small"
             icon={<EditOutlined />}
             onClick={() => navigate(`/product/edit/${record.id}`)}
-            disabled={!!record.deletedAt}
+            disabled={!isAdmin || !!record.deletedAt}
+            title={!isAdmin ? "You do not have permission to edit products" : undefined}
           >
             Edit
           </Button>
-          {isAdmin && (
-            <Button
-              danger
-              size="small"
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record.id)}
-              disabled={!!record.deletedAt}
-            >
-              Delete
-            </Button>
-          )}
+          <Button
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record.id)}
+            disabled={!isAdmin || !!record.deletedAt}
+            title={!isAdmin ? "You do not have permission to delete products" : undefined}
+          >
+            Delete
+          </Button>
         </Space>
       ),
     },
@@ -328,27 +344,21 @@ const Products = () => {
           Products Management
         </Title>
         <Space>
-          <Search
-            placeholder="Search products (name, SKU)"
+          <Input
+            placeholder="Search products (name, SKU)..."
             allowClear
-            enterButton={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: "rgba(0,0,0,.45)" }} />}
             size="large"
             style={{ width: 300 }}
-            onSearch={(value) => {
-              setSearch(value);
-              setPage(1);
-            }}
-            onChange={(e) => {
-              if (!e.target.value) {
-                setSearch("");
-                setPage(1);
-              }
-            }}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => navigate("/product/add")}
+            disabled={!isAdmin}
+            title={!isAdmin ? "You do not have permission to add products" : undefined}
           >
             Add Product
           </Button>
