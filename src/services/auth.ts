@@ -12,12 +12,15 @@ class AuthService {
 
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
         try {
-            const response = await fetch(`${this.baseURL}/api/v1/auth/signin`, {
+            const response = await fetch(`${this.baseURL}/api/v1/auth/signin-with-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(credentials),
+                body: JSON.stringify({
+                    mobile: credentials.mobile,
+                    password: credentials.otp
+                }),
             });
 
             if (!response.ok) {
@@ -26,7 +29,7 @@ class AuthService {
             }
 
             const responseData = await response.json();
-            
+
             // Extract the actual data from the wrapped response
             const data = responseData.data;
 
@@ -37,7 +40,7 @@ class AuthService {
                     name: data.user.username // Use username as display name
                 }
             }
-      
+
             // Store tokens in localStorage
             localStorage.setItem('auth_token', mappedData.accessToken);
             localStorage.setItem('user', JSON.stringify(mappedData.user));
@@ -58,7 +61,7 @@ class AuthService {
             console.error('Logout error:', error);
         }
     }
-  
+
     getToken(): string | null {
         return localStorage.getItem('auth_token');
     }
@@ -71,7 +74,7 @@ class AuthService {
         const userStr = localStorage.getItem('user');
         return userStr ? JSON.parse(userStr) : null;
     }
-  
+
     isAuthenticated(): boolean {
         const token = this.getToken();
         const user = this.getUser();

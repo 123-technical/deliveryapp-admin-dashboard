@@ -98,14 +98,12 @@ export default function LoginPage() {
           <Form.Item
             name="otp"
             rules={[
-              { required: true, message: "Please input your OTP!" },
-              { pattern: /^\d{6}$/, message: "OTP must be 6 digits" }
+              { required: true, message: "Please input your OTP!" }
             ]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="6-digit OTP"
-              maxLength={6}
+              placeholder="Password"
               style={{ borderRadius: "6px" }}
             />
           </Form.Item>
