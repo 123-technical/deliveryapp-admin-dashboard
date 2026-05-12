@@ -3,14 +3,14 @@ import type { User, UsersQuery, UsersResponse, UserRole } from '../types/user';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
-export async function fetchStaffs(params: UsersQuery): Promise<UsersResponse> {
+export async function fetchUsers(params: UsersQuery): Promise<UsersResponse> {
   try {
     const token = authService.getToken();
     const queryParams = new URLSearchParams();
-    
+
     queryParams.append('page', params.page.toString());
     queryParams.append('limit', params.pageSize.toString());
-    
+
     if (params.search) queryParams.append('search', params.search);
     if (params.role && params.role !== 'all') {
       queryParams.append('role', params.role);
@@ -30,7 +30,7 @@ export async function fetchStaffs(params: UsersQuery): Promise<UsersResponse> {
     if (!response.ok) {
       throw new Error('Failed to fetch users');
     }
-    
+
     const responseData = await response.json();
     return responseData; // Backend returns { success, code, message, data, metadata }
   } catch (error) {
@@ -39,7 +39,7 @@ export async function fetchStaffs(params: UsersQuery): Promise<UsersResponse> {
   }
 }
 
-export async function updateStaff(id: string, partial: Partial<User>): Promise<User> {
+export async function updateUser(id: string, partial: Partial<User>): Promise<User> {
   try {
     const token = authService.getToken();
     const response = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
@@ -63,7 +63,7 @@ export async function updateStaff(id: string, partial: Partial<User>): Promise<U
   }
 }
 
-export async function createStaff(payload: any): Promise<User> {
+export async function createUser(payload: any): Promise<User> {
   try {
     const token = authService.getToken();
     const response = await fetch(`${API_BASE_URL}/api/v1/users`, {
@@ -87,7 +87,7 @@ export async function createStaff(payload: any): Promise<User> {
   }
 }
 
-export async function deleteStaff(id: string): Promise<void> {
+export async function deleteUser(id: string): Promise<void> {
   try {
     const token = authService.getToken();
     const response = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
@@ -162,6 +162,6 @@ export async function bulkDelete(ids: string[]): Promise<number> {
   return 0;
 }
 
-export function exportStaffsToCsv(ids: string[]): string {
+export function exportUsersToCsv(ids: string[]): string {
   return '';
 }

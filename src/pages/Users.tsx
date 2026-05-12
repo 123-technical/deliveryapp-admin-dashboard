@@ -616,13 +616,6 @@ export default function Users() {
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item
-            name="role"
-            label="Role"
-            rules={[{ required: true, message: "Please select role" }]}
-          >
-            <Select options={roleOptions.slice(1)} placeholder="Select a role" />
-          </Form.Item>
         </Form>
       </Modal>
     </div>

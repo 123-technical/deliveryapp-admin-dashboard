@@ -5,45 +5,85 @@ import {
   Col,
   Typography,
   Avatar,
-  Descriptions,
   Tag,
   Divider,
   Space,
   Button,
   message,
   Spin,
+  Modal,
+  Form,
+  Input,
 } from "antd";
 import {
   UserOutlined,
   MailOutlined,
   PhoneOutlined,
-  CalendarOutlined,
-  SafetyCertificateOutlined,
   EditOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import type { User } from "../types/user";
-import { getProfile } from "../services/users";
+import { getProfile, updateUser } from "../services/users";
 
 const { Title, Text } = Typography;
 
 export default function Profile() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form] = Form.useForm();
+
+  const fetchProfile = async () => {
+    try {
+      const data = await getProfile();
+      setUser(data);
+    } catch (error) {
+      message.error("Failed to load profile");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const data = await getProfile();
-        setUser(data);
-      } catch (error) {
-        message.error("Failed to load profile");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchProfile();
   }, []);
+
+  const handleEdit = () => {
+    if (user) {
+      form.setFieldsValue({
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        mobile: user.mobile,
+      });
+      setModalVisible(true);
+    }
+  };
+
+  const handleModalSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+      
+      // Sanitizing data to avoid backend 400 errors for empty optional fields
+      const sanitizedValues = Object.fromEntries(
+        Object.entries(values).map(([key, value]) => [key, value === '' ? null : value])
+      );
+
+      if (user) {
+        await updateUser(user.id, sanitizedValues);
+        message.success("Profile updated successfully");
+        setModalVisible(false);
+        fetchProfile();
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      message.error("Failed to update profile");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -116,7 +156,15 @@ export default function Profile() {
           </div>
           <div style={{ paddingBottom: '20px' }}>
             <Space size="middle">
-              <Button type="primary" size="large" icon={<EditOutlined />} style={{ borderRadius: '8px', fontWeight: 600, background: '#1677ff' }}>Edit Profile</Button>
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<EditOutlined />} 
+                style={{ borderRadius: '8px', fontWeight: 600, background: '#1677ff' }}
+                onClick={handleEdit}
+              >
+                Edit Profile
+              </Button>
             </Space>
           </div>
         </div>
@@ -225,6 +273,49 @@ export default function Profile() {
           </Col>
         </Row>
       </div>
+
+      <Modal
+        title="Edit Profile"
+        open={modalVisible}
+        onOk={handleModalSubmit}
+        onCancel={() => setModalVisible(false)}
+        confirmLoading={submitting}
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="username"
+            label="Username"
+            rules={[{ required: true, message: "Please enter username" }]}
+          >
+            <Input prefix={<UserOutlined />} placeholder="Username" disabled />
+          </Form.Item>
+          <Form.Item
+            name="name"
+            label="Full Name"
+            rules={[{ required: true, message: "Please enter name" }]}
+          >
+            <Input prefix={<UserOutlined />} placeholder="Full Name" />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { type: "email", message: "Please enter a valid email" },
+              { required: true, message: "Please enter email" },
+            ]}
+          >
+            <Input prefix={<MailOutlined />} placeholder="Email" />
+          </Form.Item>
+          <Form.Item
+            name="mobile"
+            label="Mobile"
+            rules={[{ required: true, message: "Please enter mobile number" }]}
+          >
+            <Input prefix={<PhoneOutlined />} placeholder="Mobile Number" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }
