@@ -51,7 +51,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       { key: "/brands", icon: <CrownOutlined />, label: "Brands" },
       { key: "/customers", icon: <TeamOutlined />, label: "Customers" },
       { key: "/riders", icon: <UserSwitchOutlined />, label: "Riders" },
-      { key: "/staffs", icon: <UserOutlined />, label: "Staffs" },
+      { key: "/users", icon: <UserOutlined />, label: "Users" },
       { key: "/reports", icon: <BarChartOutlined />, label: "Reports" },
       { key: "/notifications", icon: <BellOutlined />, label: "Notifications" },
       { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
@@ -78,6 +78,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       key: "profile",
       icon: <UserOutlined />,
       label: "Profile",
+      onClick: () => navigate("/profile"),
     },
     {
       type: "divider",

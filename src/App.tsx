@@ -3,11 +3,13 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import AdminLayout from "./layouts/AdminLayout.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import LoginPage from "./pages/Login.tsx";
+import Users from "./pages/Users.tsx";
+const Profile = lazy(() => import("./pages/Profile.tsx"));
 
 const Overview = lazy(() => import("./pages/Overview.tsx"));
 const Customers = lazy(() => import("./pages/Customers.tsx"));
 const Riders = lazy(() => import("./pages/Riders.tsx"));
-const Staffs = lazy(() => import("./pages/Staffs.tsx"));
+const Staffs = lazy(() => import("./pages/Users.tsx"));
 const Orders = lazy(() => import("./pages/Orders.tsx"));
 const OrderAdd = lazy(() => import("./pages/OrderAdd.tsx"));
 const Products = lazy(() => import("./pages/Products.tsx"));
@@ -49,7 +51,8 @@ function App() {
                   <Route path="/customers" element={<Customers />} />
                   <Route path="/customers/add" element={<CustomerAdd />} />
                   <Route path="/riders" element={<Riders />} />
-                  <Route path="/staffs" element={<Staffs />} />
+                  <Route path="/users" element={<Users />} />
+                  <Route path="/profile" element={<Profile />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/orders/add" element={<OrderAdd />} />
                   <Route path="/products" element={<Products />} />
