@@ -112,8 +112,8 @@ const Products = () => {
       render: (imageUrl: string | null) =>
         imageUrl ? (
           <Image
-            width={40}
-            height={40}
+            width={60}
+            height={60}
             src={imageUrl}
             fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHANwDrkl1AuO+pmgAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAwqADAAQAAAABAAAAwwAAAAD9b/HnAAAHlklEQVR4Ae3dP3Ik1RnG4W+FgYxN"
             style={{ borderRadius: 4 }}
@@ -137,28 +137,28 @@ const Products = () => {
         </Button>
       ),
     },
-    {
-      title: "Slug",
-      dataIndex: "slug",
-      key: "slug",
-      sorter: (a: Product, b: Product) => a.slug.localeCompare(b.slug),
-      render: (slug: string) => (
-        <Typography.Text code style={{ fontSize: "12px" }}>
-          {slug}
-        </Typography.Text>
-      ),
-    },
-    {
-      title: "SKU",
-      dataIndex: "sku",
-      key: "sku",
-      sorter: (a: Product, b: Product) => a.sku.localeCompare(b.sku),
-      render: (sku: string) => (
-        <Typography.Text style={{ fontFamily: "monospace", fontSize: "12px" }}>
-          {sku}
-        </Typography.Text>
-      ),
-    },
+    // {
+    //   title: "Slug",
+    //   dataIndex: "slug",
+    //   key: "slug",
+    //   sorter: (a: Product, b: Product) => a.slug.localeCompare(b.slug),
+    //   render: (slug: string) => (
+    //     <Typography.Text code style={{ fontSize: "12px" }}>
+    //       {slug}
+    //     </Typography.Text>
+    //   ),
+    // },
+    // {
+    //   title: "SKU",
+    //   dataIndex: "sku",
+    //   key: "sku",
+    //   sorter: (a: Product, b: Product) => a.sku.localeCompare(b.sku),
+    //   render: (sku: string) => (
+    //     <Typography.Text style={{ fontFamily: "monospace", fontSize: "12px" }}>
+    //       {sku}
+    //     </Typography.Text>
+    //   ),
+    // },
     {
       title: "Price",
       dataIndex: "price",
@@ -186,54 +186,54 @@ const Products = () => {
       ellipsis: true,
       render: (description: string) => description || "-",
     },
-    {
-      title: "Category ID",
-      dataIndex: "categoryId",
-      key: "categoryId",
-      width: 100,
-      render: (categoryId: string) => (
-        <Typography.Text
-          copyable={{ text: categoryId }}
-          style={{ fontFamily: "monospace", fontSize: "12px" }}
-        >
-          {categoryId.substring(0, 8)}...
-        </Typography.Text>
-      ),
-    },
-    {
-      title: "Sub Category ID",
-      dataIndex: "subCategoryId",
-      key: "subCategoryId",
-      width: 120,
-      render: (subCategoryId: string) =>
-        subCategoryId ? (
-          <Typography.Text
-            copyable={{ text: subCategoryId }}
-            style={{ fontFamily: "monospace", fontSize: "12px" }}
-          >
-            {subCategoryId.substring(0, 8)}...
-          </Typography.Text>
-        ) : (
-          <Typography.Text type="secondary">-</Typography.Text>
-        ),
-    },
-    {
-      title: "Brand ID",
-      dataIndex: "brandId",
-      key: "brandId",
-      width: 100,
-      render: (brandId: string | null) =>
-        brandId ? (
-          <Typography.Text
-            copyable={{ text: brandId }}
-            style={{ fontFamily: "monospace", fontSize: "12px" }}
-          >
-            {brandId.substring(0, 8)}...
-          </Typography.Text>
-        ) : (
-          <Typography.Text type="secondary">-</Typography.Text>
-        ),
-    },
+    // {
+    //   title: "Category ID",
+    //   dataIndex: "categoryId",
+    //   key: "categoryId",
+    //   width: 100,
+    //   render: (categoryId: string) => (
+    //     <Typography.Text
+    //       copyable={{ text: categoryId }}
+    //       style={{ fontFamily: "monospace", fontSize: "12px" }}
+    //     >
+    //       {categoryId.substring(0, 8)}...
+    //     </Typography.Text>
+    //   ),
+    // },
+    // {
+    //   title: "Sub Category ID",
+    //   dataIndex: "subCategoryId",
+    //   key: "subCategoryId",
+    //   width: 120,
+    //   render: (subCategoryId: string) =>
+    //     subCategoryId ? (
+    //       <Typography.Text
+    //         copyable={{ text: subCategoryId }}
+    //         style={{ fontFamily: "monospace", fontSize: "12px" }}
+    //       >
+    //         {subCategoryId.substring(0, 8)}...
+    //       </Typography.Text>
+    //     ) : (
+    //       <Typography.Text type="secondary">-</Typography.Text>
+    //     ),
+    // },
+    // {
+    //   title: "Brand ID",
+    //   dataIndex: "brandId",
+    //   key: "brandId",
+    //   width: 100,
+    //   render: (brandId: string | null) =>
+    //     brandId ? (
+    //       <Typography.Text
+    //         copyable={{ text: brandId }}
+    //         style={{ fontFamily: "monospace", fontSize: "12px" }}
+    //       >
+    //         {brandId.substring(0, 8)}...
+    //       </Typography.Text>
+    //     ) : (
+    //       <Typography.Text type="secondary">-</Typography.Text>
+    //     ),
+    // },
     {
       title: "Available",
       dataIndex: "isAvailable",

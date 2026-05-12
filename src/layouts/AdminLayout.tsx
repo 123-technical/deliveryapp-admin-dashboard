@@ -98,26 +98,31 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         onCollapse={setCollapsed}
         breakpoint="lg"
       >
-        <div
-          style={{
-            height: 64,
-            margin: 16,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "white",
-            fontWeight: 700,
-          }}
-        >
-          123 Online Admin
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div
+            style={{
+              height: 64,
+              margin: 16,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white",
+              fontWeight: 700,
+              flexShrink: 0
+            }}
+          >
+            123 Online Admin
+          </div>
+          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+            <Menu
+              theme="dark"
+              mode="inline"
+              selectedKeys={[location.pathname]}
+              items={items}
+              onClick={handleMenuClick}
+            />
+          </div>
         </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={items}
-          onClick={handleMenuClick}
-        />
       </Sider>
       <Layout style={{ minHeight: 0 }}>
         <Header
