@@ -5,6 +5,7 @@ import {
   Col,
   Typography,
   Avatar,
+  Descriptions,
   Tag,
   Divider,
   Space,
@@ -97,14 +98,6 @@ export default function Profile() {
     return <div>User not found</div>;
   }
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "SUPER_ADMIN": return "#f50";
-      case "ADMIN": return "#2db7f5";
-      case "DELIVERY_PERSONNEL": return "#87d068";
-      default: return "#108ee9";
-    }
-  };
 
   return (
     <div style={{ padding: "0", background: "#f0f2f5", minHeight: '100%' }}>

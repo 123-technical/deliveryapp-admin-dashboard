@@ -33,12 +33,12 @@ import {
 } from "@ant-design/icons";
 import type { User, UserRole,  } from "../types/user";
 import {
-  fetchStaffs,
-  updateStaff,
-  createStaff,
-  deleteStaff,
+  fetchUsers,
+  updateUser,
+  createUser,
+  deleteUser,
   bulkDelete,
-  exportStaffsToCsv,
+  exportUsersToCsv,
   listAllRoles,
 } from "../services/users";
 
@@ -101,7 +101,7 @@ export default function Users() {
     (async () => {
       setLoading(true);
       try {
-        const res = await fetchStaffs({
+        const res = await fetchUsers({
           page,
           pageSize,
           search,
@@ -134,10 +134,10 @@ export default function Users() {
     const fetchGlobalStats = async () => {
       try {
         // Fetch total admins (ADMIN + SUPER_ADMIN)
-        const adminRes = await fetchStaffs({ page: 1, pageSize: 1, role: 'ADMIN' });
-        const superRes = await fetchStaffs({ page: 1, pageSize: 1, role: 'SUPER_ADMIN' });
-        const customerRes = await fetchStaffs({ page: 1, pageSize: 1, role: 'CUSTOMER' });
-        const riderRes = await fetchStaffs({ page: 1, pageSize: 1, role: 'DELIVERY_PERSONNEL' });
+        const adminRes = await fetchUsers({ page: 1, pageSize: 1, role: 'ADMIN' });
+        const superRes = await fetchUsers({ page: 1, pageSize: 1, role: 'SUPER_ADMIN' });
+        const customerRes = await fetchUsers({ page: 1, pageSize: 1, role: 'CUSTOMER' });
+        const riderRes = await fetchUsers({ page: 1, pageSize: 1, role: 'DELIVERY_PERSONNEL' });
 
         setGlobalStats({
           total: total, // Overall total from the main fetch
@@ -194,12 +194,12 @@ export default function Users() {
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteStaff(id);
-      message.success("Staff deleted successfully");
+      await deleteUser(id);
+      message.success("User deleted successfully");
       setData(data.filter((item) => item.id !== id));
       setTotal(total - 1);
     } catch {
-      message.error("Failed to delete staff");
+      message.error("Failed to delete User");
     }
   };
 
@@ -214,7 +214,7 @@ export default function Users() {
       setSelectedIds([]);
       setTotal(total - count);
       // Refresh data
-      const res = await fetchStaffs({
+      const res = await fetchUsers({
         page,
         pageSize,
         search,
@@ -232,7 +232,7 @@ export default function Users() {
   const handleExport = () => {
     const ids =
       selectedIds.length > 0 ? selectedIds : data.map((item) => item.id);
-    const csv = exportStaffsToCsv(ids);
+    const csv = exportUsersToCsv(ids);
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -251,17 +251,17 @@ export default function Users() {
       };
 
       if (editingUser) {
-        await updateStaff(editingUser.id, userData);
+        await updateUser(editingUser.id, userData);
         message.success("User updated successfully");
       } else {
-        await createStaff(userData);
+        await createUser(userData);
         message.success("User created successfully");
       }
 
       setModalVisible(false);
       form.resetFields();
       // Refresh data
-      const res = await fetchStaffs({
+      const res = await fetchUsers({
         page,
         pageSize,
         search,
