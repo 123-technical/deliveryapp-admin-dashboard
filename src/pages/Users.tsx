@@ -19,6 +19,8 @@ import {
   Checkbox,
   Typography,
   Avatar,
+  Drawer,
+  Descriptions,
 } from "antd";
 import {
   PlusOutlined,
@@ -40,6 +42,7 @@ import {
   bulkDelete,
   exportUsersToCsv,
   listAllRoles,
+  getUserById,
 } from "../services/users";
 
 type SortOrder = "ascend" | "descend" | undefined;
@@ -61,7 +64,6 @@ const getRoleColor = (role: UserRole) => {
 
 
 export default function Users() {
-  const { Title } = Typography;
   const [data, setData] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -74,6 +76,9 @@ export default function Users() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [viewingUser, setViewingUser] = useState<User | null>(null);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [globalStats, setGlobalStats] = useState({
     total: 0,
     admins: 0,
@@ -190,6 +195,20 @@ export default function Users() {
       ...user,
     });
     setModalVisible(true);
+  };
+
+  const handleViewDetails = async (id: string) => {
+    setDetailLoading(true);
+    setDetailVisible(true);
+    try {
+      const user = await getUserById(id);
+      setViewingUser(user);
+    } catch {
+      message.error("Failed to load user details");
+      setDetailVisible(false);
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -368,9 +387,7 @@ export default function Users() {
             <Button
               type="text"
               icon={<EyeOutlined />}
-              onClick={() =>
-                message.info("View details functionality coming soon")
-              }
+              onClick={() => handleViewDetails(record.id)}
             />
           </Tooltip>
           <Tooltip title="Edit">
@@ -408,9 +425,9 @@ export default function Users() {
           marginBottom: 24,
         }}
       >
-        <Title level={2} style={{ margin: 0 }}>
+        <Typography.Title level={2} style={{ margin: 0 }}>
           User Management
-        </Title>
+        </Typography.Title>
       </div>
 
       {/* Statistics Cards */}
@@ -618,6 +635,90 @@ export default function Users() {
           </Row>
         </Form>
       </Modal>
+
+      <Drawer
+        title="User Details"
+        placement="right"
+        width={500}
+        onClose={() => setDetailVisible(false)}
+        open={detailVisible}
+        loading={detailLoading}
+      >
+        {viewingUser && (
+          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <Avatar
+                size={100}
+                style={{ 
+                  backgroundColor: getRoleColor(viewingUser.role),
+                  fontSize: '40px',
+                  marginBottom: '16px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}
+              >
+                {viewingUser.name?.[0]?.toUpperCase() || viewingUser.username[0].toUpperCase()}
+              </Avatar>
+              <Typography.Title level={3} style={{ margin: 0 }}>{viewingUser.name || 'N/A'}</Typography.Title>
+              <Typography.Text type="secondary">@{viewingUser.username}</Typography.Text>
+            </div>
+
+            <Descriptions 
+              title="Personal Information" 
+              column={1} 
+              bordered 
+              size="small"
+              items={[
+                { label: 'Email', children: viewingUser.email || 'N/A' },
+                { label: 'Mobile', children: viewingUser.mobile },
+                { 
+                  label: 'Role', 
+                  children: <Tag color={getRoleColor(viewingUser.role)}>{viewingUser.role.replace('_', ' ')}</Tag> 
+                },
+              ]}
+            />
+
+            <Descriptions 
+              title="Account Metadata" 
+              column={1} 
+              bordered 
+              size="small"
+              items={[
+                { label: 'ID', children: viewingUser.id },
+                { 
+                  label: 'Created At', 
+                  children: dayjs(viewingUser.createdAt).format("MMMM DD, YYYY HH:mm") 
+                },
+                { 
+                  label: 'Last Updated', 
+                  children: dayjs(viewingUser.updatedAt).format("MMMM DD, YYYY HH:mm") 
+                },
+                { 
+                  label: 'Status', 
+                  children: (
+                    <Tag color={viewingUser.deletedAt ? 'error' : 'success'}>
+                      {viewingUser.deletedAt ? 'Deleted' : 'Active'}
+                    </Tag>
+                  ) 
+                },
+              ]}
+            />
+
+            <div style={{ marginTop: '20px' }}>
+              <Button 
+                type="primary" 
+                block 
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setDetailVisible(false);
+                  handleEdit(viewingUser);
+                }}
+              >
+                Edit User
+              </Button>
+            </div>
+          </Space>
+        )}
+      </Drawer>
     </div>
   );
 }

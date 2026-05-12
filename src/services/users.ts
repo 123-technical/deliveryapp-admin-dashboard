@@ -108,6 +108,29 @@ export async function deleteUser(id: string): Promise<void> {
 }
 
 // Keep helper functions for UI consistency even if not yet fully implemented on backend
+export async function getUserById(id: string): Promise<User> {
+  try {
+    const token = authService.getToken();
+    const response = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch user details');
+    }
+
+    const res = await response.json();
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    throw error;
+  }
+}
+
 export async function getProfile(): Promise<User> {
   try {
     const token = authService.getToken();
