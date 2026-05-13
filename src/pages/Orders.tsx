@@ -20,6 +20,11 @@ import {
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
+  SyncOutlined,
+  ShoppingOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { orderService } from "../services/orders";
@@ -32,8 +37,8 @@ import type {
   UpdateOrderDto,
 } from "../types/order";
 
+const { Title, Text, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
-const { Title, Text } = Typography;
 
 const Orders = () => {
   const navigate = useNavigate();
@@ -54,6 +59,14 @@ const Orders = () => {
   const [editingOrder, setEditingOrder] = useState<OrderWithItems | null>(null);
   const [editForm] = Form.useForm();
   const { user } = useAuth();
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastRefreshed, setLastRefreshed] = useState<Dayjs>(dayjs());
+  const [stats, setStats] = useState({
+    pending: 0,
+    processing: 0,
+    delivered: 0,
+    cancelled: 0,
+  });
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
@@ -112,7 +125,37 @@ const Orders = () => {
 
   useEffect(() => {
     fetchOrders();
+    setLastRefreshed(dayjs());
   }, [fetchOrders]);
+
+  // Polling for new orders
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (autoRefresh) {
+      interval = setInterval(() => {
+        fetchOrders();
+        setLastRefreshed(dayjs());
+      }, 30000); // Refresh every 30 seconds
+    }
+    return () => clearInterval(interval);
+  }, [autoRefresh, fetchOrders]);
+
+  // Update stats whenever orders change
+  useEffect(() => {
+    if (orders.length > 0) {
+      const newStats = orders.reduce(
+        (acc, order) => {
+          if (order.status === "PENDING") acc.pending++;
+          if (order.status === "PROCESSING") acc.processing++;
+          if (order.status === "DELIVERED") acc.delivered++;
+          if (order.status === "CANCELLED") acc.cancelled++;
+          return acc;
+        },
+        { pending: 0, processing: 0, delivered: 0, cancelled: 0 }
+      );
+      setStats(newStats);
+    }
+  }, [orders]);
 
   const handleEdit = (order: OrderWithItems) => {
     setEditingOrder(order);
@@ -234,24 +277,24 @@ const Orders = () => {
         <Tag color="blue">{record.items?.length || 0}</Tag>
       ),
     },
-    {
-      title: "Total Amount",
-      dataIndex: "totalAmount",
-      key: "totalAmount",
-      width: 120,
-      render: (amount: string) => `₹${parseFloat(amount).toFixed(2)}`,
-      sorter: (a: OrderWithItems, b: OrderWithItems) =>
-        parseFloat(a.totalAmount) - parseFloat(b.totalAmount),
-    },
-    {
-      title: "Discount",
-      dataIndex: "discountAmount",
-      key: "discountAmount",
-      width: 120,
-      render: (amount: string) => `₹${parseFloat(amount).toFixed(2)}`,
-      sorter: (a: OrderWithItems, b: OrderWithItems) =>
-        parseFloat(a.discountAmount) - parseFloat(b.discountAmount),
-    },
+    // {
+    //   title: "Total Amount",
+    //   dataIndex: "totalAmount",
+    //   key: "totalAmount",
+    //   width: 120,
+    //   render: (amount: string) => `₹${parseFloat(amount).toFixed(2)}`,
+    //   sorter: (a: OrderWithItems, b: OrderWithItems) =>
+    //     parseFloat(a.totalAmount) - parseFloat(b.totalAmount),
+    // },
+    // {
+    //   title: "Discount",
+    //   dataIndex: "discountAmount",
+    //   key: "discountAmount",
+    //   width: 120,
+    //   render: (amount: string) => `₹${parseFloat(amount).toFixed(2)}`,
+    //   sorter: (a: OrderWithItems, b: OrderWithItems) =>
+    //     parseFloat(a.discountAmount) - parseFloat(b.discountAmount),
+    // },
     {
       title: "Final Amount",
       dataIndex: "finalAmount",
@@ -301,68 +344,68 @@ const Orders = () => {
       onFilter: (value: boolean | React.Key, record: OrderWithItems) =>
         record.status === value,
     },
-    {
-      title: "Delivery Address ID",
-      dataIndex: "deliveryAddressId",
-      key: "deliveryAddressId",
-      width: 150,
-      ellipsis: true,
-      render: (addressId: string) => (
-        <Typography.Text
-          copyable={{ text: addressId }}
-          style={{ fontFamily: "monospace", fontSize: "12px" }}
-          ellipsis={{ tooltip: addressId }}
-        >
-          {addressId.substring(0, 8)}...
-        </Typography.Text>
-      ),
-    },
-    {
-      title: "Delivery Slot ID",
-      dataIndex: "deliverySlotId",
-      key: "deliverySlotId",
-      width: 150,
-      ellipsis: true,
-      render: (slotId: string | null) =>
-        slotId ? (
-          <Typography.Text
-            copyable={{ text: slotId }}
-            style={{ fontFamily: "monospace", fontSize: "12px" }}
-            ellipsis={{ tooltip: slotId }}
-          >
-            {slotId.substring(0, 8)}...
-          </Typography.Text>
-        ) : (
-          <Typography.Text type="secondary">-</Typography.Text>
-        ),
-    },
-    {
-      title: "Delivery Personnel",
-      dataIndex: "deliveryPersonnelId",
-      key: "deliveryPersonnelId",
-      width: 150,
-      ellipsis: true,
-      render: (personnelId: string | null) =>
-        personnelId ? (
-          <Typography.Text
-            copyable={{ text: personnelId }}
-            style={{ fontFamily: "monospace", fontSize: "12px" }}
-            ellipsis={{ tooltip: personnelId }}
-          >
-            {personnelId.substring(0, 8)}...
-          </Typography.Text>
-        ) : (
-          <Typography.Text type="secondary">-</Typography.Text>
-        ),
-    },
-    {
-      title: "Notes",
-      dataIndex: "notes",
-      key: "notes",
-      width: 200,
-      ellipsis: true,
-      render: (notes: string | null) => notes || "-",
-    },
+    // {
+    //   title: "Delivery Address ID",
+    //   dataIndex: "deliveryAddressId",
+    //   key: "deliveryAddressId",
+    //   width: 150,
+    //   ellipsis: true,
+    //   render: (addressId: string) => (
+    //     <Typography.Text
+    //       copyable={{ text: addressId }}
+    //       style={{ fontFamily: "monospace", fontSize: "12px" }}
+    //       ellipsis={{ tooltip: addressId }}
+    //     >
+    //       {addressId.substring(0, 8)}...
+    //     </Typography.Text>
+    //   ),
+    // },
+    // {
+    //   title: "Delivery Slot ID",
+    //   dataIndex: "deliverySlotId",
+    //   key: "deliverySlotId",
+    //   width: 150,
+    //   ellipsis: true,
+    //   render: (slotId: string | null) =>
+    //     slotId ? (
+    //       <Typography.Text
+    //         copyable={{ text: slotId }}
+    //         style={{ fontFamily: "monospace", fontSize: "12px" }}
+    //         ellipsis={{ tooltip: slotId }}
+    //       >
+    //         {slotId.substring(0, 8)}...
+    //       </Typography.Text>
+    //     ) : (
+    //       <Typography.Text type="secondary">-</Typography.Text>
+    //     ),
+    // },
+    // {
+    //   title: "Delivery Personnel",
+    //   dataIndex: "deliveryPersonnelId",
+    //   key: "deliveryPersonnelId",
+    //   width: 150,
+    //   ellipsis: true,
+    //   render: (personnelId: string | null) =>
+    //     personnelId ? (
+    //       <Typography.Text
+    //         copyable={{ text: personnelId }}
+    //         style={{ fontFamily: "monospace", fontSize: "12px" }}
+    //         ellipsis={{ tooltip: personnelId }}
+    //       >
+    //         {personnelId.substring(0, 8)}...
+    //       </Typography.Text>
+    //     ) : (
+    //       <Typography.Text type="secondary">-</Typography.Text>
+    //     ),
+    // },
+    // {
+    //   title: "Notes",
+    //   dataIndex: "notes",
+    //   key: "notes",
+    //   width: 200,
+    //   ellipsis: true,
+    //   render: (notes: string | null) => notes || "-",
+    // },
     {
       title: "Order Status",
       key: "orderStatus",
@@ -376,40 +419,41 @@ const Orders = () => {
         </Typography.Text>
       ),
     },
-    {
-      title: "Created At",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      width: 150,
-      render: (date: string) => dayjs(date).format("YYYY-MM-DD HH:mm"),
-      sorter: (a: OrderWithItems, b: OrderWithItems) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    },
-    {
-      title: "Updated At",
-      dataIndex: "updatedAt",
-      key: "updatedAt",
-      width: 150,
-      render: (date: string) => dayjs(date).format("YYYY-MM-DD HH:mm"),
-      sorter: (a: OrderWithItems, b: OrderWithItems) =>
-        new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
-    },
-    {
-      title: "Deleted At",
-      dataIndex: "deletedAt",
-      key: "deletedAt",
-      width: 150,
-      render: (date: string | null) =>
-        date ? dayjs(date).format("YYYY-MM-DD HH:mm") : "-",
-      sorter: (a: OrderWithItems, b: OrderWithItems) => {
-        if (!a.deletedAt && !b.deletedAt) return 0;
-        if (!a.deletedAt) return 1;
-        if (!b.deletedAt) return -1;
-        return (
-          new Date(a.deletedAt).getTime() - new Date(b.deletedAt).getTime()
-        );
-      },
-    },
+    // {
+    //   title: "Created At",
+    //   dataIndex: "createdAt",
+    //   key: "createdAt",
+    //   width: 150,
+    //   render: (date: string) => dayjs(date).format("YYYY-MM-DD HH:mm"),
+    //   sorter: (a: OrderWithItems, b: OrderWithItems) =>
+    //     new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    // },
+    // {
+    //   title: "Updated At",
+    //   dataIndex: "updatedAt",
+    //   key: "updatedAt",
+    //   width: 150,
+    //   render: (date: string) => dayjs(date).format("YYYY-MM-DD HH:mm"),
+    //   sorter: (a: OrderWithItems, b: OrderWithItems) =>
+    //     new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+    // },
+    // {
+    //   title: "Deleted At",
+    //   dataIndex: "deletedAt",
+    //   key: "deletedAt",
+    //   width: 150,
+    //   render: (date: string | null) =>
+    //     date ? dayjs(date).format("YYYY-MM-DD HH:mm") : "-",
+    //   sorter: (a: OrderWithItems, b: OrderWithItems) => {
+    //     if (!a.deletedAt && !b.deletedAt) return 0;
+    //     if (!a.deletedAt) return 1;
+    //     if (!b.deletedAt) return -1;
+    //     return (
+    //       new Date(a.deletedAt).getTime() - new Date(b.deletedAt).getTime()
+    //     );
+    
+    //   },
+    // },
     {
       title: "Actions",
       key: "actions",
@@ -462,53 +506,119 @@ const Orders = () => {
   ];
 
   return (
-    <div style={{ padding: "24px" }}>
+    <div style={{ padding: "24px", maxWidth: "1600px", margin: "0 auto" }}>
       <div style={{ marginBottom: "24px" }}>
-        <Title level={2} style={{ margin: 0 }}>
-          Orders Management
-        </Title>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginTop: 8,
-          }}
-        >
-          <Text type="secondary">
-            Manage and track all orders in the system
-          </Text>
-          {isAdmin && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <Title level={2} style={{ margin: 0 }}>
+              Orders Management
+            </Title>
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary">
+                Manage and track all orders in the system
+              </Text>
+              <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: "12px" }}>
+                <Tag icon={autoRefresh ? <SyncOutlined spin /> : <SyncOutlined />} color={autoRefresh ? "processing" : "default"}>
+                  {autoRefresh ? "Live Updates On" : "Live Updates Off"}
+                </Tag>
+                <Text type="secondary" style={{ fontSize: "12px" }}>
+                  Last synced: {lastRefreshed.format("HH:mm:ss")}
+                </Text>
+              </div>
+            </div>
+          </div>
+          <Space>
             <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => navigate("/orders/add")}
+              icon={<SyncOutlined />}
+              onClick={() => {
+                fetchOrders();
+                setLastRefreshed(dayjs());
+              }}
+              loading={loading}
             >
-              Create Order
+              Refresh
             </Button>
-          )}
+            <Button
+              type={autoRefresh ? "default" : "primary"}
+              onClick={() => setAutoRefresh(!autoRefresh)}
+            >
+              {autoRefresh ? "Pause Live" : "Resume Live"}
+            </Button>
+            {isAdmin && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => navigate("/orders/add")}
+              >
+                Create Order
+              </Button>
+            )}
+          </Space>
         </div>
       </div>
 
-      <Card style={{ marginBottom: "24px" }}>
-        <Space wrap>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+        <Card bordered={false} className="stat-card" style={{ background: "#fff7e6" }}>
+          <Space align="start">
+            <div style={{ padding: "12px", background: "#ffe7ba", borderRadius: "8px" }}>
+              <ClockCircleOutlined style={{ fontSize: "24px", color: "#d46b08" }} />
+            </div>
+            <div>
+              <Text type="secondary">Pending Orders</Text>
+              <Title level={3} style={{ margin: 0 }}>{stats.pending}</Title>
+            </div>
+          </Space>
+        </Card>
+        <Card bordered={false} className="stat-card" style={{ background: "#e6f7ff" }}>
+          <Space align="start">
+            <div style={{ padding: "12px", background: "#bae7ff", borderRadius: "8px" }}>
+              <ShoppingOutlined style={{ fontSize: "24px", color: "#096dd9" }} />
+            </div>
+            <div>
+              <Text type="secondary">Processing</Text>
+              <Title level={3} style={{ margin: 0 }}>{stats.processing}</Title>
+            </div>
+          </Space>
+        </Card>
+        <Card bordered={false} className="stat-card" style={{ background: "#f6ffed" }}>
+          <Space align="start">
+            <div style={{ padding: "12px", background: "#d9f7be", borderRadius: "8px" }}>
+              <CheckCircleOutlined style={{ fontSize: "24px", color: "#389e0d" }} />
+            </div>
+            <div>
+              <Text type="secondary">Delivered</Text>
+              <Title level={3} style={{ margin: 0 }}>{stats.delivered}</Title>
+            </div>
+          </Space>
+        </Card>
+        <Card bordered={false} className="stat-card" style={{ background: "#fff1f0" }}>
+          <Space align="start">
+            <div style={{ padding: "12px", background: "#ffccc7", borderRadius: "8px" }}>
+              <CloseCircleOutlined style={{ fontSize: "24px", color: "#cf1322" }} />
+            </div>
+            <div>
+              <Text type="secondary">Cancelled</Text>
+              <Title level={3} style={{ margin: 0 }}>{stats.cancelled}</Title>
+            </div>
+          </Space>
+        </Card>
+      </div>
+
+      <Card style={{ marginBottom: "24px" }} bodyStyle={{ padding: "16px" }}>
+        <Space wrap size="middle">
           <Input.Search
             allowClear
-            placeholder="Search by order ID, order number, or user ID"
+            placeholder="Search Order ID / Number"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onSearch={() => {
               setPage(1);
               fetchOrders();
             }}
-            onPressEnter={() => {
-              setPage(1);
-              fetchOrders();
-            }}
-            style={{ width: 320 }}
+            style={{ width: 280 }}
           />
           <Select<OrderStatus | "all">
-            style={{ width: 160 }}
+            style={{ width: 150 }}
             value={status}
             onChange={(value) => {
               setStatus(value);
@@ -526,10 +636,10 @@ const Orders = () => {
             ]}
           />
           <Input
-            placeholder="Filter by User ID"
+            placeholder="User ID"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            style={{ width: 200 }}
+            style={{ width: 180 }}
           />
           <RangePicker
             onChange={(value) => {
@@ -539,6 +649,7 @@ const Orders = () => {
             allowEmpty={[true, true]}
           />
           <Button
+            type="dashed"
             onClick={() => {
               setSearch("");
               setStatus("all");
@@ -548,19 +659,19 @@ const Orders = () => {
               setSorter({});
             }}
           >
-            Reset
+            Reset Filters
           </Button>
         </Space>
       </Card>
 
-      <Card>
+      <Card bodyStyle={{ padding: 0 }}>
         <Table<OrderWithItems>
           rowKey="id"
           loading={loading}
           columns={columns}
           dataSource={orders}
           size="middle"
-          scroll={{ x: 2000 }}
+          scroll={{ x: 1800 }}
           pagination={{
             current: page,
             pageSize,
@@ -585,7 +696,6 @@ const Orders = () => {
           }}
         />
       </Card>
-
       {/* Edit Order Modal */}
       {isAdmin && (
         <Modal
