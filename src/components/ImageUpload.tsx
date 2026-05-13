@@ -4,8 +4,10 @@ import { uploadService } from "../services/upload";
 interface ImageUploadProps {
   /** Current image URL (for displaying existing images) */
   value?: string;
-  /** Callback when a new image is uploaded or cleared */
-  onChange: (url: string | undefined) => void;
+  /** Callback when a new image is uploaded or cleared (URL mode) */
+  onChange?: (url: string | undefined) => void;
+  /** Callback when a file is selected (Deferred mode) */
+  onFileSelect?: (file: File | undefined) => void;
   /** Label to display above the upload area */
   label?: string;
   /** Whether the upload is disabled */
@@ -21,6 +23,7 @@ type UploadStatus = "idle" | "uploading" | "success" | "error";
 export default function ImageUpload({
   value,
   onChange,
+  onFileSelect,
   label = "Image",
   disabled = false,
   accept = "image/*",
@@ -55,6 +58,13 @@ export default function ImageUpload({
       setStatus("uploading");
       setProgress(0);
 
+      if (onFileSelect) {
+        // Deferred mode: just pass the file up
+        onFileSelect(file);
+        setStatus("idle");
+        return;
+      }
+
       try {
         const publicUrl = await uploadService.uploadFile(file, (percent) => {
           setProgress(percent);
@@ -62,7 +72,7 @@ export default function ImageUpload({
 
         setStatus("success");
         setProgress(100);
-        onChange(publicUrl);
+        onChange?.(publicUrl);
 
         // Clean up local preview
         URL.revokeObjectURL(localPreview);
@@ -109,7 +119,8 @@ export default function ImageUpload({
   };
 
   const handleClear = () => {
-    onChange(undefined);
+    onChange?.(undefined);
+    onFileSelect?.(undefined);
     setPreviewUrl(null);
     setStatus("idle");
     setProgress(0);

@@ -4,6 +4,7 @@ import type { ProductUnit, UpdateProductDto } from "../types/product";
 import { productService } from "../services/products";
 import { categoryService } from "../services/categories";
 import { brandService } from "../services/brands";
+import { uploadService } from "../services/upload";
 import type { Category } from "../types/category";
 import type { Brand } from "../types/brand";
 import { App } from "antd";
@@ -48,6 +49,7 @@ export default function ProductEdit() {
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [originalProduct, setOriginalProduct] = useState<any>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [form, setForm] = useState<{
     name: string;
     slug: string;
@@ -134,7 +136,8 @@ export default function ProductEdit() {
       form.imageUrl !== (originalProduct.imageUrl || undefined) ||
       form.isAvailable !== originalProduct.isAvailable ||
       form.categoryId !== originalProduct.categoryId ||
-      form.brandId !== (originalProduct.brandId || ""));
+      form.brandId !== (originalProduct.brandId || "") ||
+      imageFile !== null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -142,6 +145,11 @@ export default function ProductEdit() {
 
     setSaving(true);
     try {
+      let finalImageUrl = form.imageUrl;
+      if (imageFile) {
+        finalImageUrl = await uploadService.uploadFile(imageFile);
+      }
+
       const payload: UpdateProductDto = {
         name: form.name,
         slug: form.slug,
@@ -153,8 +161,8 @@ export default function ProductEdit() {
         categoryId: form.categoryId,
         brandId: form.brandId || undefined,
         // Only include imageUrl if it has a value
-        ...(form.imageUrl &&
-          form.imageUrl.trim() !== "" && { imageUrl: form.imageUrl }),
+        ...(finalImageUrl &&
+          finalImageUrl.trim() !== "" && { imageUrl: finalImageUrl }),
       };
       await productService.updateProduct(id, payload);
       message.success("Product updated successfully");
@@ -294,9 +302,15 @@ export default function ProductEdit() {
             <ImageUpload
               label="Product Image"
               value={form.imageUrl}
-              onChange={(url) =>
-                setForm({ ...form, imageUrl: url })
-              }
+              onFileSelect={(file) => {
+                if (file) {
+                  setImageFile(file);
+                  setForm({ ...form, imageUrl: URL.createObjectURL(file) });
+                } else {
+                  setImageFile(null);
+                  setForm({ ...form, imageUrl: undefined });
+                }
+              }}
             />
           </div>
           <label>

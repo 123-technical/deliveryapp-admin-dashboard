@@ -15,6 +15,7 @@ import {
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { brandService } from "../services/brands";
+import { uploadService } from "../services/upload";
 import { useAuth } from "../contexts/AuthContext";
 import type { Brand, CreateBrandDto, UpdateBrandDto } from "../types/brand";
 import AntdImageUpload from "../components/AntdImageUpload";
@@ -62,9 +63,15 @@ const Brands = () => {
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
+      
+      let finalLogoUrl = values.logoUrl;
+      if (finalLogoUrl instanceof File) {
+        finalLogoUrl = await uploadService.uploadFile(finalLogoUrl);
+      }
+
       const brandData: CreateBrandDto = {
         name: values.name,
-        logoUrl: values.logoUrl || undefined,
+        logoUrl: finalLogoUrl || undefined,
         description: values.description || undefined,
       };
 
@@ -98,9 +105,14 @@ const Brands = () => {
     try {
       const values = await editForm.validateFields();
       if (editingBrand) {
+        let finalLogoUrl = values.logoUrl;
+        if (finalLogoUrl instanceof File) {
+          finalLogoUrl = await uploadService.uploadFile(finalLogoUrl);
+        }
+
         const brandData: UpdateBrandDto = {
           name: values.name,
-          logoUrl: values.logoUrl || undefined,
+          logoUrl: finalLogoUrl || undefined,
           description: values.description || undefined,
         };
 

@@ -15,6 +15,7 @@ import {
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from "@ant-design/icons";
 import { categoryService } from "../services/categories";
+import { uploadService } from "../services/upload";
 import { useAuth } from "../contexts/AuthContext";
 import type { Category } from "../types/category";
 import AntdImageUpload from "../components/AntdImageUpload";
@@ -80,6 +81,11 @@ const Categories = () => {
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
+      
+      if (values.imageUrl instanceof File) {
+        values.imageUrl = await uploadService.uploadFile(values.imageUrl);
+      }
+
       await categoryService.createCategory(values);
       message.success("Category created successfully");
       setIsModalVisible(false);
@@ -123,6 +129,9 @@ const Categories = () => {
     try {
       const values = await editForm.validateFields();
       if (editingCategory) {
+        if (values.imageUrl instanceof File) {
+          values.imageUrl = await uploadService.uploadFile(values.imageUrl);
+        }
         await categoryService.updateCategory(editingCategory.id, values);
         message.success("Category updated successfully");
         setIsEditModalVisible(false);

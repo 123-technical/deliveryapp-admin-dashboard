@@ -4,6 +4,7 @@ import type { ProductUnit, CreateProductDto } from "../types/product";
 import { productService } from "../services/products";
 import { categoryService } from "../services/categories";
 import { brandService } from "../services/brands";
+import { uploadService } from "../services/upload";
 import type { Category } from "../types/category";
 import type { Brand } from "../types/brand";
 import ImageUpload from "../components/ImageUpload";
@@ -42,6 +43,7 @@ export default function ProductAdd() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingBrands, setLoadingBrands] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [form, setForm] = useState<{
     name: string;
     slug: string;
@@ -102,6 +104,13 @@ export default function ProductAdd() {
     e.preventDefault();
     setSaving(true);
     try {
+      let finalImageUrl = form.imageUrl;
+
+      if (imageFile) {
+        // Upload the image right before saving the product
+        finalImageUrl = await uploadService.uploadFile(imageFile);
+      }
+
       const payload: CreateProductDto = {
         name: form.name,
         slug: form.slug,
@@ -113,8 +122,8 @@ export default function ProductAdd() {
         categoryId: form.categoryId,
         brandId: form.brandId,
         // Only include imageUrl if it has a value
-        ...(form.imageUrl &&
-          form.imageUrl.trim() !== "" && { imageUrl: form.imageUrl }),
+        ...(finalImageUrl &&
+          finalImageUrl.trim() !== "" && { imageUrl: finalImageUrl }),
       };
       console.log("Form data before submission:", form);
       console.log("Selected category ID:", form.categoryId);
@@ -237,9 +246,16 @@ export default function ProductAdd() {
             <ImageUpload
               label="Product Image"
               value={form.imageUrl}
-              onChange={(url) =>
-                setForm({ ...form, imageUrl: url })
-              }
+              onFileSelect={(file) => {
+                if (file) {
+                  setImageFile(file);
+                  // Generate local preview URL
+                  setForm({ ...form, imageUrl: URL.createObjectURL(file) });
+                } else {
+                  setImageFile(null);
+                  setForm({ ...form, imageUrl: undefined });
+                }
+              }}
             />
           </div>
           <label>

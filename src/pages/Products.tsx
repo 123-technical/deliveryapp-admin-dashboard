@@ -264,40 +264,40 @@ const Products = () => {
         </Typography.Text>
       ),
     },
-    {
-      title: "Created At",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      width: 150,
-      render: (date: string) => new Date(date).toLocaleString(),
-      sorter: (a: Product, b: Product) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    },
-    {
-      title: "Updated At",
-      dataIndex: "updatedAt",
-      key: "updatedAt",
-      width: 150,
-      render: (date: string) => new Date(date).toLocaleString(),
-      sorter: (a: Product, b: Product) =>
-        new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
-    },
-    {
-      title: "Deleted At",
-      dataIndex: "deletedAt",
-      key: "deletedAt",
-      width: 150,
-      render: (date: string | null) =>
-        date ? new Date(date).toLocaleString() : "-",
-      sorter: (a: Product, b: Product) => {
-        if (!a.deletedAt && !b.deletedAt) return 0;
-        if (!a.deletedAt) return 1;
-        if (!b.deletedAt) return -1;
-        return (
-          new Date(a.deletedAt).getTime() - new Date(b.deletedAt).getTime()
-        );
-      },
-    },
+    // {
+    //   title: "Created At",
+    //   dataIndex: "createdAt",
+    //   key: "createdAt",
+    //   width: 150,
+    //   render: (date: string) => new Date(date).toLocaleString(),
+    //   sorter: (a: Product, b: Product) =>
+    //     new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    // },
+    // {
+    //   title: "Updated At",
+    //   dataIndex: "updatedAt",
+    //   key: "updatedAt",
+    //   width: 150,
+    //   render: (date: string) => new Date(date).toLocaleString(),
+    //   sorter: (a: Product, b: Product) =>
+    //     new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+    // },
+    // {
+    //   title: "Deleted At",
+    //   dataIndex: "deletedAt",
+    //   key: "deletedAt",
+    //   width: 150,
+    //   render: (date: string | null) =>
+    //     date ? new Date(date).toLocaleString() : "-",
+    //   sorter: (a: Product, b: Product) => {
+    //     if (!a.deletedAt && !b.deletedAt) return 0;
+    //     if (!a.deletedAt) return 1;
+    //     if (!b.deletedAt) return -1;
+    //     return (
+    //       new Date(a.deletedAt).getTime() - new Date(b.deletedAt).getTime()
+    //     );
+    //   },
+    // },
     {
       title: "Actions",
       key: "actions",
