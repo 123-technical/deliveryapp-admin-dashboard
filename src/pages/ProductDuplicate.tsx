@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { Product } from "../types/product";
 import { productService } from "../services/products";
+import ImageUpload from "../components/ImageUpload";
 
 function inputStyle() {
   return {
@@ -270,16 +271,15 @@ export default function ProductDuplicate() {
               style={inputStyle()}
             />
           </label>
-          <label>
-            <div>Image URL</div>
-            <input
+          <div>
+            <ImageUpload
+              label="Product Image"
               value={form.imageUrl}
-              onChange={(e) =>
-                setForm({ ...form, imageUrl: e.target.value })
+              onChange={(url) =>
+                setForm({ ...form, imageUrl: url || "" })
               }
-              style={inputStyle()}
             />
-          </label>
+          </div>
           <label>
             <div>Availability</div>
             <select

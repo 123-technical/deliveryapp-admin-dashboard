@@ -17,6 +17,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { brandService } from "../services/brands";
 import { useAuth } from "../contexts/AuthContext";
 import type { Brand, CreateBrandDto, UpdateBrandDto } from "../types/brand";
+import AntdImageUpload from "../components/AntdImageUpload";
 
 const { Title } = Typography;
 
@@ -358,12 +359,9 @@ const Brands = () => {
             </Form.Item>
             <Form.Item
               name="logoUrl"
-              label="Logo URL"
-              rules={[
-                { type: "url", message: "Please enter a valid logo URL!" },
-              ]}
+              label="Logo"
             >
-              <Input placeholder="Enter logo URL (optional)" />
+              <AntdImageUpload />
             </Form.Item>
           </Form>
         </Modal>
@@ -407,12 +405,9 @@ const Brands = () => {
             </Form.Item>
             <Form.Item
               name="logoUrl"
-              label="Logo URL"
-              rules={[
-                { type: "url", message: "Please enter a valid logo URL!" },
-              ]}
+              label="Logo"
             >
-              <Input placeholder="Enter logo URL (optional)" />
+              <AntdImageUpload />
             </Form.Item>
           </Form>
         </Modal>

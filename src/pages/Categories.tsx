@@ -17,6 +17,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from "@ant
 import { categoryService } from "../services/categories";
 import { useAuth } from "../contexts/AuthContext";
 import type { Category } from "../types/category";
+import AntdImageUpload from "../components/AntdImageUpload";
 
 const { Title } = Typography;
 
@@ -423,12 +424,9 @@ const Categories = () => {
 
             <Form.Item
               name="imageUrl"
-              label="Image URL"
-              rules={[
-                { type: "url", message: "Please enter a valid image URL!" },
-              ]}
+              label="Image"
             >
-              <Input placeholder="Enter image URL (optional)" />
+              <AntdImageUpload />
             </Form.Item>
           </Form>
         </Modal>
@@ -489,12 +487,9 @@ const Categories = () => {
 
             <Form.Item
               name="imageUrl"
-              label="Image URL"
-              rules={[
-                { type: "url", message: "Please enter a valid image URL!" },
-              ]}
+              label="Image"
             >
-              <Input placeholder="Enter image URL (optional)" />
+              <AntdImageUpload />
             </Form.Item>
           </Form>
         </Modal>

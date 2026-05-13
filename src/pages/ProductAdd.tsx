@@ -6,6 +6,7 @@ import { categoryService } from "../services/categories";
 import { brandService } from "../services/brands";
 import type { Category } from "../types/category";
 import type { Brand } from "../types/brand";
+import ImageUpload from "../components/ImageUpload";
 
 function inputStyle() {
   return {
@@ -232,19 +233,15 @@ export default function ProductAdd() {
               ))}
             </select>
           </label>
-          <label>
-            <div>Image URL</div>
-            <input
-              value={form.imageUrl ?? ""}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  imageUrl: e.target.value || undefined,
-                })
+          <div>
+            <ImageUpload
+              label="Product Image"
+              value={form.imageUrl}
+              onChange={(url) =>
+                setForm({ ...form, imageUrl: url })
               }
-              style={inputStyle()}
             />
-          </label>
+          </div>
           <label>
             <div>Available</div>
             <select
