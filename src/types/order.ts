@@ -2,7 +2,8 @@ export type OrderStatus =
   | 'PENDING'
   | 'CONFIRMED'
   | 'PROCESSING'
-  | 'SHIPPED'
+  | 'OUT_FOR_DELIVERY'
+  | 'SHIPPED' // keeping from original just in case
   | 'DELIVERED'
   | 'CANCELLED'
   | 'REFUNDED'
@@ -19,47 +20,52 @@ export type PaymentMethod =
   | 'UPI'
   | 'NET_BANKING'
 
+export type OrderItem = {
+  id?: string
+  orderId?: string
+  productId: string
+  quantity: number
+  priceAtPurchase: number | string // support backend string decimals
+  // additional fields from GET response if present
+  productName?: string
+  productImageUrl?: string
+}
+
 export type Order = {
   id: string
-  orderNumber: string
-  totalAmount: string // Decimal as string for backend compatibility
-  discountAmount: string // Decimal as string for backend compatibility
-  finalAmount: string // Decimal as string for backend compatibility
-  status: OrderStatus
+  orderNumber?: string
+  totalAmount?: string 
+  discountAmount?: string 
+  finalAmount?: string 
   userId: string
-  createdAt: string // ISO date string
-  updatedAt: string // ISO date string
-  deletedAt: string | null // ISO date string
-  notes: string | null
   deliveryAddressId: string
   deliverySlotId: string | null
-  deliveryPersonnelId: string | null
+  deliveryPersonnelId?: string | null
+  notes: string | null
+  status: OrderStatus
+  orderItems: OrderItem[]
+  items?: OrderItem[] // fallback for existing UI
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+  // nested objects if returned by GET /api/v1/orders/{id}:
+  user?: { name: string; email: string; phone?: string }
+  deliveryAddress?: { [key: string]: any }
+  deliverySlot?: { [key: string]: any }
 }
 
-export type OrderItem = {
-  id: string
-  quantity: number
-  priceAtPurchase: string // Decimal as string for backend compatibility
-  orderId: string
-  productId: string
-}
-
-export type OrderWithItems = Order & {
-  items: OrderItem[]
-}
+export type OrderWithItems = Order
 
 export type CreateOrderDto = {
   userId: string
   deliveryAddressId: string
   deliverySlotId?: string
   notes?: string
-  orderItems: OrderItemDto[]
-}
-
-export type OrderItemDto = {
-  productId: string
-  quantity: number
-  priceAtPurchase: number
+  orderItems: {
+    productId: string
+    quantity: number
+    priceAtPurchase: number
+  }[]
 }
 
 export type UpdateOrderDto = {
@@ -72,7 +78,7 @@ export type OrdersQuery = {
   page: number
   pageSize: number
   search?: string
-  status?: OrderStatus
+  status?: OrderStatus | 'all'
   userId?: string
   sortBy?: keyof Order
   sortOrder?: 'ascend' | 'descend'
@@ -81,6 +87,6 @@ export type OrdersQuery = {
 }
 
 export type OrdersResponse = {
-  data: OrderWithItems[]
+  data: Order[]
   total: number
 }

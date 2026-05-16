@@ -11,7 +11,7 @@ const Customers = lazy(() => import("./pages/Customers.tsx"));
 const Riders = lazy(() => import("./pages/Riders.tsx"));
 const Staffs = lazy(() => import("./pages/Users.tsx"));
 const Orders = lazy(() => import("./pages/Orders.tsx"));
-const OrderAdd = lazy(() => import("./pages/OrderAdd.tsx"));
+
 const Products = lazy(() => import("./pages/Products.tsx"));
 const ProductAdd = lazy(() => import("./pages/ProductAdd.tsx"));
 const ProductEdit = lazy(() => import("./pages/ProductEdit.tsx"));
@@ -54,7 +54,7 @@ function App() {
                   <Route path="/users" element={<Users />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/orders" element={<Orders />} />
-                  <Route path="/orders/add" element={<OrderAdd />} />
+                  <Route path="/admin/orders" element={<Navigate to="/orders" replace />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/product/add" element={<ProductAdd />} />
                   <Route path="/product/edit/:id" element={<ProductEdit />} />
@@ -75,7 +75,8 @@ function App() {
                   <Route path="/brands" element={<Brands />} />
                   <Route path="/brand/:id" element={<BrandDetail />} />
                   <Route path="/carts" element={<Carts />} />
-                  <Route path="/order/:id" element={<OrderDetail />} />
+                  <Route path="/orders/:id" element={<OrderDetail />} />
+                  <Route path="/admin/orders/:id" element={<Navigate to="/orders/:id" replace />} />
                   <Route
                     path="*"
                     element={<div style={{ padding: 24 }}>Not Found</div>}
