@@ -106,21 +106,36 @@ const Products = () => {
     },
     {
       title: "Image",
-      dataIndex: "imageUrl",
       key: "imageUrl",
       width: 80,
-      render: (imageUrl: string | null) =>
-        imageUrl ? (
+      render: (_: unknown, record: Product) => {
+        const src = record.imageUrls?.[0];
+        return src ? (
           <Image
             width={60}
             height={60}
-            src={imageUrl}
-            fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHANwDrkl1AuO+pmgAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAwqADAAQAAAABAAAAwwAAAAD9b/HnAAAHlklEQVR4Ae3dP3Ik1RnG4W+FgYxN"
-            style={{ borderRadius: 4 }}
+            src={src}
+            style={{ borderRadius: 4, objectFit: "cover" }}
+            fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect width='60' height='60' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-size='10'%3ENo img%3C/text%3E%3C/svg%3E"
           />
         ) : (
-          "-"
-        ),
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: 4,
+              background: "#e5e7eb",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 10,
+              color: "#9ca3af",
+            }}
+          >
+            No img
+          </div>
+        );
+      },
     },
     {
       title: "Name",
@@ -238,10 +253,10 @@ const Products = () => {
       title: "Available",
       dataIndex: "isAvailable",
       key: "isAvailable",
-      width: 100,
+      width: 120,
       render: (isAvailable: boolean) => (
         <Tag color={isAvailable ? "green" : "red"}>
-          {isAvailable ? "Yes" : "No"}
+          {isAvailable ? "Available" : "Unavailable"}
         </Tag>
       ),
       filters: [

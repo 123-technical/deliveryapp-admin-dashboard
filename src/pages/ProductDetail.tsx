@@ -320,8 +320,8 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      {/* Product Image */}
-      {product.imageUrl && (
+      {/* Product Images */}
+      {product.imageUrls && product.imageUrls.length > 0 && (
         <div
           style={{
             background: "#fff",
@@ -332,19 +332,24 @@ export default function ProductDetail() {
           }}
         >
           <h3 style={{ margin: "0 0 16px 0", color: "#111827" }}>
-            Product Image
+            Product Images ({product.imageUrls.length})
           </h3>
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            style={{
-              width: 200,
-              height: 200,
-              objectFit: "cover",
-              borderRadius: 8,
-              border: "1px solid #e5e7eb",
-            }}
-          />
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            {product.imageUrls.map((url, idx) => (
+              <img
+                key={idx}
+                src={url}
+                alt={`${product.name} image ${idx + 1}`}
+                style={{
+                  width: 160,
+                  height: 160,
+                  objectFit: "cover",
+                  borderRadius: 8,
+                  border: "1px solid #e5e7eb",
+                }}
+              />
+            ))}
+          </div>
         </div>
       )}
 

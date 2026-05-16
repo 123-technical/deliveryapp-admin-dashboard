@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { Product } from "../types/product";
 import { productService } from "../services/products";
-import { uploadService } from "../services/upload";
-import ImageUpload from "../components/ImageUpload";
+import MultiImageUpload from "../components/MultiImageUpload";
 
 function inputStyle() {
   return {
@@ -39,7 +38,9 @@ export default function ProductDuplicate() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [originalProduct, setOriginalProduct] = useState<Product | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+  const [uploadedObjectNames, setUploadedObjectNames] = useState<string[]>([]);
+  const [multiUploadReady, setMultiUploadReady] = useState(false);
   const [form, setForm] = useState({
     name: "",
     sku: "",
@@ -51,7 +52,6 @@ export default function ProductDuplicate() {
     isAvailable: true,
     description: "",
     brandId: "",
-    imageUrl: "",
   });
 
   useEffect(() => {
@@ -88,8 +88,10 @@ export default function ProductDuplicate() {
           isAvailable: product.isAvailable,
           description: product.description || "",
           brandId: product.brandId || "",
-          imageUrl: product.imageUrl || "",
         });
+        const urls = Array.isArray(product.imageUrls) ? product.imageUrls : [];
+        setExistingImageUrls(urls);
+        setMultiUploadReady(true);
       } catch (error) {
         console.error("Failed to fetch product:", error);
         setOriginalProduct(null);
@@ -124,9 +126,7 @@ export default function ProductDuplicate() {
       form.unit !== originalProduct.unit ||
       form.isAvailable !== originalProduct.isAvailable ||
       form.description !== (originalProduct.description || "") ||
-      form.brandId !== (originalProduct.brandId || "") ||
-      form.imageUrl !== (originalProduct.imageUrl || "") ||
-      imageFile !== null);
+      form.brandId !== (originalProduct.brandId || ""));
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -134,11 +134,6 @@ export default function ProductDuplicate() {
 
     setSaving(true);
     try {
-      let finalImageUrl = form.imageUrl;
-      if (imageFile) {
-        finalImageUrl = await uploadService.uploadFile(imageFile);
-      }
-
       const payload = {
         name: form.name,
         sku: form.sku,
@@ -148,9 +143,8 @@ export default function ProductDuplicate() {
         unit: form.unit,
         isAvailable: form.isAvailable,
         categoryId: form.categoryId || "Uncategorized",
-        subCategoryId: form.subCategoryId,
-        brandId: form.brandId,
-        imageUrl: finalImageUrl,
+        imageKeys: uploadedObjectNames,
+        ...(form.brandId ? { brandId: form.brandId } : {}),
       };
       await productService.createProduct(payload);
       navigate("/products");
@@ -279,20 +273,13 @@ export default function ProductDuplicate() {
               style={inputStyle()}
             />
           </label>
-          <div>
-            <ImageUpload
-              label="Product Image"
-              value={form.imageUrl}
-              onFileSelect={(file) => {
-                if (file) {
-                  setImageFile(file);
-                  setForm({ ...form, imageUrl: URL.createObjectURL(file) });
-                } else {
-                  setImageFile(null);
-                  setForm({ ...form, imageUrl: "" });
-                }
-              }}
-            />
+          <div style={{ gridColumn: "1 / -1" }}>
+            {multiUploadReady && (
+              <MultiImageUpload
+                existingImageUrls={existingImageUrls}
+                onChange={setUploadedObjectNames}
+              />
+            )}
           </div>
           <label>
             <div>Availability</div>

@@ -1,4 +1,4 @@
-export type ProductUnit = 'PIECE' | 'KG' | 'GRAM' | 'LITER' | 'ML' | 'METER' | 'CM' | 'BOX' | 'PACK'
+export type ProductUnit = 'PIECE' | 'KG' | 'GRAM' | 'LITRE' | 'ML' | 'METER' | 'CM' | 'BOX' | 'PACK'
 
 export type Product = {
   id: string
@@ -8,10 +8,11 @@ export type Product = {
   price: string // Decimal as string for backend compatibility
   sku: string
   unit: ProductUnit
-  imageUrl: string | null
+  imageKeys: string[]      // raw storage keys from backend
+  imageUrls: string[]      // full Oracle Cloud URLs from backend
   isAvailable: boolean
   categoryId: string
-  subCategoryId: string
+  subCategoryId?: string   // optional — only if backend returns it
   brandId: string | null
   createdAt: string // ISO date string
   updatedAt: string // ISO date string
@@ -46,11 +47,12 @@ export type CreateProductDto = {
   price: string // Decimal as string for backend compatibility
   sku: string
   unit: ProductUnit
-  imageUrl?: string
+  imageKeys: string[]      // array of objectNames returned by uploadService.uploadFile()
   isAvailable?: boolean
   categoryId: string
-  brandId?: string // Optional field
+  brandId?: string         // omit from payload entirely if not selected
 }
 
-export type UpdateProductDto = Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>>
-
+export type UpdateProductDto = Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'imageKeys'>> & {
+  imageKeys?: string[]     // objectNames to replace existing images
+}

@@ -1,13 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ProductUnit, CreateProductDto } from "../types/product";
 import { productService } from "../services/products";
 import { categoryService } from "../services/categories";
 import { brandService } from "../services/brands";
-import { uploadService } from "../services/upload";
 import type { Category } from "../types/category";
 import type { Brand } from "../types/brand";
-import ImageUpload from "../components/ImageUpload";
+import MultiImageUpload from "../components/MultiImageUpload";
 
 function inputStyle() {
   return {
@@ -18,6 +17,8 @@ function inputStyle() {
     outline: "none",
     background: "#fff",
     color: "#111827",
+    fontSize: 14,
+    boxSizing: "border-box" as const,
   } as const;
 }
 
@@ -36,14 +37,52 @@ function buttonStyle() {
   } as const;
 }
 
+function labelStyle() {
+  return {
+    fontSize: 13,
+    fontWeight: 500,
+    color: "#374151",
+    marginBottom: 4,
+    display: "block",
+  } as const;
+}
+
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+}
+
+const UNIT_OPTIONS: { value: ProductUnit; label: string }[] = [
+  { value: "PIECE", label: "Piece" },
+  { value: "KG", label: "Kilogram" },
+  { value: "GRAM", label: "Gram" },
+  { value: "LITRE", label: "Litre" },
+  { value: "ML", label: "Milliliter" },
+  { value: "METER", label: "Meter" },
+  { value: "CM", label: "Centimeter" },
+  { value: "BOX", label: "Box" },
+  { value: "PACK", label: "Pack" },
+];
+
 export default function ProductAdd() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingBrands, setLoadingBrands] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  // Collected objectNames from MultiImageUpload
+  const [uploadedObjectNames, setUploadedObjectNames] = useState<string[]>([]);
+
+  // Track if slug was manually edited
+  const slugManuallyEdited = useRef(false);
+
   const [form, setForm] = useState<{
     name: string;
     slug: string;
@@ -51,10 +90,9 @@ export default function ProductAdd() {
     price: string;
     sku: string;
     unit: ProductUnit;
-    imageUrl?: string;
     isAvailable: boolean;
     categoryId: string;
-    brandId: string;
+    brandId: string; // "" means "None" (omit from payload)
   }>({
     name: "",
     slug: "",
@@ -62,7 +100,6 @@ export default function ProductAdd() {
     price: "0",
     sku: "",
     unit: "PIECE" as ProductUnit,
-    imageUrl: undefined,
     isAvailable: true,
     categoryId: "",
     brandId: "",
@@ -100,17 +137,34 @@ export default function ProductAdd() {
     fetchBrands();
   }, []);
 
+  function handleNameChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const name = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      name,
+      // Auto-generate slug only if user hasn't manually edited it
+      slug: slugManuallyEdited.current ? prev.slug : generateSlug(name),
+    }));
+  }
+
+  function handleSlugChange(e: React.ChangeEvent<HTMLInputElement>) {
+    slugManuallyEdited.current = true;
+    setForm((prev) => ({ ...prev, slug: e.target.value }));
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitError(null);
+    setImageError(null);
+
+    // Validate images — need at least one uploaded
+    if (uploadedObjectNames.length < 1) {
+      setImageError("Please upload at least one product image");
+      return;
+    }
+
     setSaving(true);
     try {
-      let finalImageUrl = form.imageUrl;
-
-      if (imageFile) {
-        // Upload the image right before saving the product
-        finalImageUrl = await uploadService.uploadFile(imageFile);
-      }
-
       const payload: CreateProductDto = {
         name: form.name,
         slug: form.slug,
@@ -118,65 +172,91 @@ export default function ProductAdd() {
         price: form.price,
         sku: form.sku,
         unit: form.unit,
+        imageKeys: uploadedObjectNames,
         isAvailable: form.isAvailable,
         categoryId: form.categoryId,
-        brandId: form.brandId,
-        // Only include imageUrl if it has a value
-        ...(finalImageUrl &&
-          finalImageUrl.trim() !== "" && { imageUrl: finalImageUrl }),
+        // Omit brandId entirely if not selected
+        ...(form.brandId ? { brandId: form.brandId } : {}),
       };
-      console.log("Form data before submission:", form);
-      console.log("Selected category ID:", form.categoryId);
-      console.log("Selected brand ID:", form.brandId);
+
       console.log("Payload being sent:", payload);
       await productService.createProduct(payload);
       navigate("/products");
     } catch (error) {
       console.error("Product creation failed:", error);
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to create product"
+      );
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2 style={{ margin: 0, marginBottom: 16 }}>Add Product</h2>
-      <form onSubmit={onSubmit} style={{ maxWidth: 720 }}>
+    <div style={{ padding: 24, maxWidth: 800 }}>
+      <h2 style={{ margin: 0, marginBottom: 24, fontSize: 22, fontWeight: 700 }}>
+        Add Product
+      </h2>
+
+      <form onSubmit={onSubmit}>
         <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}
         >
-          <label>
-            <div>Name</div>
+          {/* Name */}
+          <label style={{ display: "block" }}>
+            <span style={labelStyle()}>
+              Name <span style={{ color: "#ef4444" }}>*</span>
+            </span>
             <input
+              id="product-add-name"
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={handleNameChange}
               style={inputStyle()}
               required
+              placeholder="e.g. Organic Basmati Rice"
             />
           </label>
-          <label>
-            <div>Slug</div>
+
+          {/* Slug */}
+          <label style={{ display: "block" }}>
+            <span style={labelStyle()}>
+              Slug <span style={{ color: "#ef4444" }}>*</span>
+            </span>
             <input
+              id="product-add-slug"
               value={form.slug}
-              onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              onChange={handleSlugChange}
               style={inputStyle()}
               required
+              placeholder="auto-generated from name"
             />
           </label>
-          <label>
-            <div>SKU</div>
+
+          {/* SKU */}
+          <label style={{ display: "block" }}>
+            <span style={labelStyle()}>
+              SKU <span style={{ color: "#ef4444" }}>*</span>
+            </span>
             <input
+              id="product-add-sku"
               value={form.sku}
               onChange={(e) => setForm({ ...form, sku: e.target.value })}
               style={inputStyle()}
               required
+              placeholder="e.g. RICE-001"
             />
           </label>
-          <label>
-            <div>Price</div>
+
+          {/* Price */}
+          <label style={{ display: "block" }}>
+            <span style={labelStyle()}>
+              Price (₹) <span style={{ color: "#ef4444" }}>*</span>
+            </span>
             <input
+              id="product-add-price"
               type="number"
               step="0.01"
+              min="0"
               value={form.price}
               onChange={(e) =>
                 setForm({ ...form, price: e.target.value || "0" })
@@ -185,9 +265,14 @@ export default function ProductAdd() {
               required
             />
           </label>
-          <label>
-            <div>Unit</div>
+
+          {/* Unit */}
+          <label style={{ display: "block" }}>
+            <span style={labelStyle()}>
+              Unit <span style={{ color: "#ef4444" }}>*</span>
+            </span>
             <select
+              id="product-add-unit"
               value={form.unit}
               onChange={(e) =>
                 setForm({ ...form, unit: e.target.value as ProductUnit })
@@ -195,27 +280,32 @@ export default function ProductAdd() {
               style={inputStyle()}
               required
             >
-              <option value="PIECE">Piece</option>
-              <option value="KG">Kilogram</option>
-              <option value="GRAM">Gram</option>
-              <option value="LITER">Liter</option>
-              <option value="ML">Milliliter</option>
-              <option value="METER">Meter</option>
-              <option value="CM">Centimeter</option>
-              <option value="BOX">Box</option>
-              <option value="PACK">Pack</option>
+              {UNIT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </label>
-          <label>
-            <div>Category</div>
+
+          {/* Category */}
+          <label style={{ display: "block" }}>
+            <span style={labelStyle()}>
+              Category <span style={{ color: "#ef4444" }}>*</span>
+            </span>
             <select
+              id="product-add-category"
               value={form.categoryId}
-              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, categoryId: e.target.value })
+              }
               style={inputStyle()}
               required
               disabled={loadingCategories}
             >
-              <option value="">Select a category</option>
+              <option value="">
+                {loadingCategories ? "Loading..." : "Select a category"}
+              </option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -223,18 +313,20 @@ export default function ProductAdd() {
               ))}
             </select>
           </label>
-          <label>
-            <div>Brand</div>
+
+          {/* Brand (optional) */}
+          <label style={{ display: "block" }}>
+            <span style={labelStyle()}>Brand (optional)</span>
             <select
-              value={form.brandId ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, brandId: e.target.value || "" })
-              }
+              id="product-add-brand"
+              value={form.brandId}
+              onChange={(e) => setForm({ ...form, brandId: e.target.value })}
               style={inputStyle()}
-              required
               disabled={loadingBrands}
             >
-              <option value="">Select a brand</option>
+              <option value="">
+                {loadingBrands ? "Loading..." : "None"}
+              </option>
               {brands.map((brand) => (
                 <option key={brand.id} value={brand.id}>
                   {brand.name}
@@ -242,25 +334,14 @@ export default function ProductAdd() {
               ))}
             </select>
           </label>
-          <div>
-            <ImageUpload
-              label="Product Image"
-              value={form.imageUrl}
-              onFileSelect={(file) => {
-                if (file) {
-                  setImageFile(file);
-                  // Generate local preview URL
-                  setForm({ ...form, imageUrl: URL.createObjectURL(file) });
-                } else {
-                  setImageFile(null);
-                  setForm({ ...form, imageUrl: undefined });
-                }
-              }}
-            />
-          </div>
-          <label>
-            <div>Available</div>
+
+          {/* Availability */}
+          <label style={{ display: "block" }}>
+            <span style={labelStyle()}>
+              Availability <span style={{ color: "#ef4444" }}>*</span>
+            </span>
             <select
+              id="product-add-available"
               value={form.isAvailable.toString()}
               onChange={(e) =>
                 setForm({
@@ -270,26 +351,76 @@ export default function ProductAdd() {
               }
               style={inputStyle()}
             >
-              <option value="true">Yes</option>
-              <option value="false">No</option>
+              <option value="true">Available</option>
+              <option value="false">Unavailable</option>
             </select>
           </label>
-          <label style={{ gridColumn: "1 / -1" }}>
-            <div>Description</div>
+
+          {/* Description — full width */}
+          <label style={{ gridColumn: "1 / -1", display: "block" }}>
+            <span style={labelStyle()}>
+              Description <span style={{ color: "#ef4444" }}>*</span>
+            </span>
             <textarea
+              id="product-add-description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              style={{ ...inputStyle(), minHeight: 80 }}
+              style={{ ...inputStyle(), minHeight: 90, resize: "vertical" }}
               required
+              placeholder="Describe the product..."
             />
           </label>
+
+          {/* Multi-image upload — full width */}
+          <div style={{ gridColumn: "1 / -1" }}>
+            <MultiImageUpload
+              onChange={(names) => {
+                setUploadedObjectNames(names);
+                if (names.length > 0) setImageError(null);
+              }}
+            />
+            {imageError && (
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 13,
+                  color: "#ef4444",
+                  fontWeight: 500,
+                }}
+              >
+                ⚠ {imageError}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
-          <button type="submit" style={buttonStyle()} disabled={saving}>
-            Save
+        {/* Submit error */}
+        {submitError && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: "8px 12px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: 8,
+              fontSize: 13,
+              color: "#b91c1c",
+            }}
+          >
+            {submitError}
+          </div>
+        )}
+
+        <div style={{ marginTop: 20, display: "flex", gap: 8 }}>
+          <button
+            id="product-add-submit"
+            type="submit"
+            style={buttonStyle()}
+            disabled={saving}
+          >
+            {saving ? "Saving..." : "Save Product"}
           </button>
           <button
             type="button"
