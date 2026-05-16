@@ -73,6 +73,31 @@ class CategoryService {
     }
 
 
+    async getSubCategories(parentId: string): Promise<Category[]> {
+        try {
+            const token = authService.getToken();
+            const response = await fetch(`${this.baseURL}/api/v1/categories/sub/${parentId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to fetch subcategories');
+            }
+
+            const responseData = await response.json();
+            const data = responseData.data || responseData;
+            return Array.isArray(data) ? data : [];
+        } catch (error) {
+            console.error('Get subcategories error:', error);
+            throw error;
+        }
+    }
+
     async createCategory(categoryData: CreateCategoryDto): Promise<Category> {
         try {
             const token = authService.getToken();
