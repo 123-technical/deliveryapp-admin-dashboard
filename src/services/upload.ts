@@ -23,7 +23,7 @@ class UploadService {
     const token = authService.getToken();
 
     const response = await fetch(
-      `${this.baseURL}/api/v1/upload/file/upload-url`,
+      `${this.baseURL}/api/v1/upload/file`,
       {
         method: "POST",
         headers: {
