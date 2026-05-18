@@ -67,9 +67,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/login");
+      navigate("/login", { replace: true });
     } catch (error) {
-      console.error("Logout error:", error);
+      navigate("/login", { replace: true });
     }
   };
 

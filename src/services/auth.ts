@@ -1,85 +1,174 @@
-
-import type { LoginCredentials, AuthResponse, AuthUser } from '../types/auth';
+import type { LoginCredentials, AuthResponse, AuthUser, SignupDto } from '../types/auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
+// ─── Token storage with expiry ────────────────────────────────────────────────
+// Tokens are stored in localStorage with an expiry timestamp.
+// On every read we validate the expiry and clear if stale.
+const TOKEN_KEY   = 'auth_token';
+const USER_KEY    = 'auth_user';
+const EXPIRY_KEY  = 'auth_expiry';
+// Default session length: 12 hours
+const SESSION_MS  = 12 * 60 * 60 * 1000;
+
+// In-memory cache so the token survives tab focus without re-parsing localStorage
+let _memToken: string | null = null;
+
+// ─── 401 global handler registry ─────────────────────────────────────────────
+type UnauthorizedHandler = () => void;
+let _unauthorizedHandler: UnauthorizedHandler | null = null;
+
+export function registerUnauthorizedHandler(handler: UnauthorizedHandler) {
+  _unauthorizedHandler = handler;
+}
+
+function handleUnauthorized() {
+  authService.clearSession();
+  _unauthorizedHandler?.();
+}
+
+// ─── Fetch wrapper with 401 interception ──────────────────────────────────────
+export async function fetchWithAuth(input: RequestInfo, init?: RequestInit): Promise<Response> {
+  const token = authService.getToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(init?.headers as Record<string, string> | undefined),
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+  const response = await fetch(input, { ...init, headers });
+  if (response.status === 401) {
+    handleUnauthorized();
+  }
+  return response;
+}
+
+// ─── AuthService ──────────────────────────────────────────────────────────────
 class AuthService {
-    private baseURL: string;
+  private baseURL = API_BASE_URL;
 
-    constructor() {
-        this.baseURL = API_BASE_URL;
+  // ── Login ──────────────────────────────────────────────────────────────────
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    const response = await fetch(`${this.baseURL}/api/v1/auth/signin-with-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
+
+    if (!response.ok) {
+      if (!navigator.onLine) {
+        throw new Error('Unable to connect. Check your internet connection.');
+      }
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Login failed. Please check your credentials.');
     }
 
-    async login(credentials: LoginCredentials): Promise<AuthResponse> {
-        try {
-            const response = await fetch(`${this.baseURL}/api/v1/auth/signin-with-password`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    mobile: credentials.mobile,
-                    password: credentials.otp
-                }),
-            });
+    const responseData = await response.json();
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Login failed');
-            }
+    // Handle both response shapes: { data: { accessToken, user } } and { accessToken, user }
+    const payload = responseData.data ?? responseData;
+    const accessToken: string = payload.accessToken ?? payload.token ?? '';
+    const rawUser = payload.user ?? {};
+    const user: AuthUser = {
+      id:       rawUser.id       ?? '',
+      username: rawUser.username ?? '',
+      name:     rawUser.name     ?? rawUser.username ?? '',
+      email:    rawUser.email,
+      mobile:   rawUser.mobile,
+      role:     rawUser.role     ?? 'ADMIN',
+    };
 
-            const responseData = await response.json();
+    this.storeSession(accessToken, user);
+    return { accessToken, user };
+  }
 
-            // Extract the actual data from the wrapped response
-            const data = responseData.data;
+  // ── Signup ─────────────────────────────────────────────────────────────────
+  async signup(dto: SignupDto): Promise<void> {
+    const response = await fetch(`${this.baseURL}/api/v1/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dto),
+    });
 
-            const mappedData = {
-                accessToken: data.accessToken,
-                user: {
-                    ...data.user,
-                    name: data.user.username // Use username as display name
-                }
-            }
-
-            // Store tokens in localStorage
-            localStorage.setItem('auth_token', mappedData.accessToken);
-            localStorage.setItem('user', JSON.stringify(mappedData.user));
-
-            return mappedData;
-
-        } catch (error) {
-            console.error('Login error:', error);
-            throw error;
-        }
+    if (!response.ok) {
+      if (!navigator.onLine) {
+        throw new Error('Unable to connect. Check your internet connection.');
+      }
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Signup failed. Please try again.');
     }
+  }
 
-    async logout(): Promise<void> {
-        try {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
+  // ── Session storage ────────────────────────────────────────────────────────
+  private storeSession(token: string, user: AuthUser) {
+    _memToken = token;
+    const expiry = Date.now() + SESSION_MS;
+    try {
+      localStorage.setItem(TOKEN_KEY,  token);
+      localStorage.setItem(USER_KEY,   JSON.stringify(user));
+      localStorage.setItem(EXPIRY_KEY, String(expiry));
+    } catch {
+      // Silently handle private browsing / storage quota
     }
+  }
 
-    getToken(): string | null {
-        return localStorage.getItem('auth_token');
-    }
+  clearSession() {
+    _memToken = null;
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(EXPIRY_KEY);
+    } catch { /* noop */ }
+  }
 
-    getRefreshToken(): string | null {
+  async logout(): Promise<void> {
+    this.clearSession();
+  }
+
+  // ── Token getters ──────────────────────────────────────────────────────────
+  getToken(): string | null {
+    // Fast path: in-memory cache
+    if (_memToken) return _memToken;
+
+    try {
+      const expiry = Number(localStorage.getItem(EXPIRY_KEY) ?? 0);
+      if (expiry && Date.now() > expiry) {
+        // Token has expired — clear everything
+        this.clearSession();
         return null;
+      }
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (token) _memToken = token;
+      return token;
+    } catch {
+      return null;
     }
+  }
 
-    getUser(): AuthUser | null {
-        const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
-    }
+  getRefreshToken(): string | null {
+    return null; // No refresh token implementation on this backend
+  }
 
-    isAuthenticated(): boolean {
-        const token = this.getToken();
-        const user = this.getUser();
-        return !!(token && user);
+  getUser(): AuthUser | null {
+    try {
+      const raw = localStorage.getItem(USER_KEY);
+      return raw ? (JSON.parse(raw) as AuthUser) : null;
+    } catch {
+      return null;
     }
+  }
+
+  isAuthenticated(): boolean {
+    return !!(this.getToken() && this.getUser());
+  }
+
+  isSessionExpired(): boolean {
+    try {
+      const expiry = Number(localStorage.getItem(EXPIRY_KEY) ?? 0);
+      return expiry > 0 && Date.now() > expiry;
+    } catch {
+      return false;
+    }
+  }
 }
 
 export const authService = new AuthService();

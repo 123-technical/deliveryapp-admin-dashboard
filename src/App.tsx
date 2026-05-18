@@ -4,6 +4,8 @@ import AdminLayout from "./layouts/AdminLayout.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import LoginPage from "./pages/Login.tsx";
 import Users from "./pages/Users.tsx";
+import { useAuth } from "./contexts/AuthContext.tsx";
+
 const Profile = lazy(() => import("./pages/Profile.tsx"));
 
 const Overview = lazy(() => import("./pages/Overview.tsx"));
@@ -29,12 +31,19 @@ const Carts = lazy(() => import("./pages/Carts.tsx"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail.tsx"));
 const CustomerAdd = lazy(() => import("./pages/CustomerAdd.tsx"));
 
+// GuestRoute: redirect to /overview if already authenticated
+function GuestRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return null;
+  if (isAuthenticated) return <Navigate to="/overview" replace />;
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <Suspense fallback={<div style={{ padding: 24 }}>Loading...</div>}>
       <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login"  element={<GuestRoute><LoginPage /></GuestRoute>} />
 
         {/* Protected routes */}
         <Route
