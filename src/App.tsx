@@ -15,8 +15,6 @@ const Staffs = lazy(() => import("./pages/Users.tsx"));
 const Orders = lazy(() => import("./pages/Orders.tsx"));
 
 const Products = lazy(() => import("./pages/Products.tsx"));
-const ProductAdd = lazy(() => import("./pages/ProductAdd.tsx"));
-const ProductEdit = lazy(() => import("./pages/ProductEdit.tsx"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail.tsx"));
 const ProductDuplicate = lazy(() => import("./pages/ProductDuplicate.tsx"));
 const Reports = lazy(() => import("./pages/Reports.tsx"));
@@ -29,7 +27,6 @@ const Brands = lazy(() => import("./pages/Brands.tsx"));
 const BrandDetail = lazy(() => import("./pages/BrandDetail.tsx"));
 const Carts = lazy(() => import("./pages/Carts.tsx"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail.tsx"));
-const CustomerAdd = lazy(() => import("./pages/CustomerAdd.tsx"));
 
 // GuestRoute: redirect to /overview if already authenticated
 function GuestRoute({ children }: { children: React.ReactNode }) {
@@ -58,15 +55,12 @@ function App() {
                   />
                   <Route path="/overview" element={<Overview />} />
                   <Route path="/customers" element={<Customers />} />
-                  <Route path="/customers/add" element={<CustomerAdd />} />
                   <Route path="/riders" element={<Riders />} />
                   <Route path="/users" element={<Users />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/admin/orders" element={<Navigate to="/orders" replace />} />
                   <Route path="/products" element={<Products />} />
-                  <Route path="/product/add" element={<ProductAdd />} />
-                  <Route path="/product/edit/:id" element={<ProductEdit />} />
                   <Route
                     path="/product/detail/:id"
                     element={<ProductDetail />}

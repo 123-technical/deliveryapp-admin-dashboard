@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Typography,
   Skeleton,
-  Tag,
   Table,
   Button,
   Tooltip,
@@ -28,7 +27,6 @@ import {
   ReloadOutlined,
   RiseOutlined,
   FallOutlined,
-  CopyOutlined,
   TrophyOutlined,
   AlertOutlined,
   CarOutlined,
@@ -41,6 +39,8 @@ import { productService } from "../services/products";
 import { categoryService } from "../services/categories";
 import { fetchCustomers } from "../services/customers";
 import type { Order } from "../types/order";
+import StatusBadge from "../components/StatusBadge";
+import CopyableId from "../components/CopyableId";
 
 dayjs.extend(relativeTime);
 
@@ -454,23 +454,7 @@ export default function Overview() {
       title: "Order ID",
       dataIndex: "id",
       key: "id",
-      render: (id: string) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Text code style={{ fontSize: 12 }}>{id.substring(0, 8)}</Text>
-          <Tooltip title="Copy ID">
-            <Button
-              type="text"
-              size="small"
-              icon={<CopyOutlined style={{ fontSize: 12 }} />}
-              onClick={() => {
-                navigator.clipboard.writeText(id);
-                message.success("Copied");
-              }}
-              style={{ padding: 0, height: "auto", lineHeight: 1 }}
-            />
-          </Tooltip>
-        </div>
-      ),
+      render: (id: string) => <CopyableId id={id} />,
     },
     {
       title: "Customer",
@@ -509,11 +493,7 @@ export default function Overview() {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status: string) => (
-        <Tag color={getStatusColor(status)} style={{ fontSize: 11 }}>
-          {status.replace(/_/g, " ")}
-        </Tag>
-      ),
+      render: (status: string) => <StatusBadge status={status} />,
     },
     {
       title: "Date",

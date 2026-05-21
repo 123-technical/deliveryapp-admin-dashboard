@@ -7,25 +7,18 @@ import {
   Select,
   Space,
   Table,
-  Card,
-  Typography,
-  Tag,
-  message,
   Modal,
   Form,
   Popconfirm,
-  Drawer,
   Radio,
   Spin,
-  Tooltip,
+  message,
 } from "antd";
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
-  SyncOutlined,
-  CopyOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
@@ -37,34 +30,19 @@ import type {
   Order,
   OrderStatus,
   OrdersQuery,
-  UpdateOrderDto,
   CreateOrderDto,
 } from "../types/order";
 import type { Product } from "../types/product";
+import DrawerForm from "../components/DrawerForm";
+import StatusBadge from "../components/StatusBadge";
+import CopyableId from "../components/CopyableId";
 
-const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
-// Helper function to check if a string is a valid UUID
-const isValidUUID = (str: string): boolean => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(str.trim());
-};
-
-const getStatusColor = (status: string) => {
-  const colors: Record<string, string> = {
-    PENDING: "orange",
-    CONFIRMED: "blue",
-    PROCESSING: "cyan",
-    OUT_FOR_DELIVERY: "orange",
-    SHIPPED: "purple",
-    DELIVERED: "green",
-    CANCELLED: "red",
-    REFUNDED: "volcano",
-  };
-  return colors[status] || "default";
-};
+// Helper: is valid UUID
+const isValidUUID = (str: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim());
 
 export default function Orders() {
   const navigate = useNavigate();
@@ -79,33 +57,29 @@ export default function Orders() {
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  
+
+  // Edit Status Modal
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [editForm] = Form.useForm();
 
-  // Create Order Drawer state
+  // Create Order Drawer
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
-  const [drawerStep, setDrawerStep] = useState(1);
 
-  // Drawer Form State
+  // Drawer form state
   const [users, setUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
-
   const [addresses, setAddresses] = useState<any[]>([]);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
-
   const [slots, setSlots] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
-
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [orderItems, setOrderItems] = useState<any[]>([]);
-  
   const [notes, setNotes] = useState("");
 
   const queryParams: OrdersQuery = useMemo(
@@ -128,7 +102,7 @@ export default function Orders() {
           const order = await orderService.getOrderById(search.trim());
           setOrders([order]);
           setTotal(1);
-        } catch (error) {
+        } catch {
           message.error("Order not found");
           setOrders([]);
           setTotal(0);
@@ -138,23 +112,19 @@ export default function Orders() {
         setOrders(response.data || []);
         setTotal(response.total || 0);
       }
-    } catch (error) {
+    } catch {
       message.error("Failed to fetch orders");
     } finally {
       setLoading(false);
     }
   }, [queryParams, search]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  // Handle Edit Status
+  // Edit Status
   const handleEdit = (order: Order) => {
     setEditingOrder(order);
-    editForm.setFieldsValue({
-      status: order.status,
-    });
+    editForm.setFieldsValue({ status: order.status });
     setIsEditModalVisible(true);
   };
 
@@ -167,7 +137,7 @@ export default function Orders() {
         setIsEditModalVisible(false);
         fetchOrders();
       }
-    } catch (error) {
+    } catch {
       message.error("Failed to update order status");
     }
   };
@@ -177,131 +147,98 @@ export default function Orders() {
       await orderService.deleteOrder(orderId);
       message.success("Order deleted successfully");
       fetchOrders();
-    } catch (error) {
+    } catch {
       message.error("Failed to delete order");
     }
   };
 
-  const handleCopyId = (id: string) => {
-    navigator.clipboard.writeText(id);
-    message.success("Order ID copied");
-  };
-
-  // Create Order Drawer Logic
+  // Create Order Drawer logic (unchanged)
   const openCreateDrawer = () => {
     setIsDrawerVisible(true);
-    setDrawerStep(1);
     setSelectedUserId("");
     setSelectedAddressId("");
     setSelectedSlotId("");
     setOrderItems([{ productId: "", quantity: 1, priceAtPurchase: 0 }]);
     setNotes("");
-    fetchProducts();
+    fetchProductsList();
   };
 
-  const closeCreateDrawer = () => {
-    setIsDrawerVisible(false);
-  };
+  const closeCreateDrawer = () => { setIsDrawerVisible(false); };
 
   const searchCustomers = async (searchTerm: string) => {
-    if (!searchTerm) {
-      setUsers([]);
-      return;
-    }
+    if (!searchTerm) { setUsers([]); return; }
     setLoadingUsers(true);
     try {
       const response = await fetchCustomers({ page: 1, pageSize: 20, search: searchTerm });
       setUsers(response.data || []);
-    } catch (error) {
-      message.error("Failed to search customers");
-    } finally {
-      setLoadingUsers(false);
-    }
+    } catch { message.error("Failed to search customers"); }
+    finally { setLoadingUsers(false); }
   };
 
   const fetchAddresses = async (uid: string) => {
     setLoadingAddresses(true);
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-      const token = localStorage.getItem("token"); // use your authService getter
+      const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE_URL}/api/v1/users/${uid}/addresses`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        setAddresses(Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []));
-      } else {
-        setAddresses([]);
-      }
-    } catch {
-      setAddresses([]);
-    } finally {
-      setLoadingAddresses(false);
-    }
+        setAddresses(Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : []);
+      } else { setAddresses([]); }
+    } catch { setAddresses([]); }
+    finally { setLoadingAddresses(false); }
   };
 
-  // Mocking slots fetch as per instructions, or check endpoint
-  const fetchSlots = async () => {
+  const fetchSlotsList = async () => {
     setLoadingSlots(true);
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
       const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE_URL}/api/v1/delivery-slots`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        setSlots(Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []));
-      } else {
-        setSlots([]);
-      }
-    } catch {
-      setSlots([]);
-    } finally {
-      setLoadingSlots(false);
-    }
+        setSlots(Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : []);
+      } else { setSlots([]); }
+    } catch { setSlots([]); }
+    finally { setLoadingSlots(false); }
   };
 
   useEffect(() => {
-    if (selectedUserId) {
-      fetchAddresses(selectedUserId);
-      fetchSlots();
-    }
+    if (selectedUserId) { fetchAddresses(selectedUserId); fetchSlotsList(); }
   }, [selectedUserId]);
 
-  const fetchProducts = async () => {
+  const fetchProductsList = async () => {
     setLoadingProducts(true);
     try {
       const response = await productService.getProducts({ page: 1, pageSize: 100, isAvailable: true });
       setProducts(response.data || []);
-    } catch {
-      message.error("Failed to fetch products");
-    } finally {
-      setLoadingProducts(false);
-    }
+    } catch { message.error("Failed to fetch products"); }
+    finally { setLoadingProducts(false); }
   };
 
   const handleCreateOrder = async () => {
     if (!selectedUserId) return message.error("Please select a customer");
     if (!selectedAddressId && addresses.length > 0) return message.error("Please select a delivery address");
-    if (orderItems.some(item => !item.productId || item.quantity < 1)) {
+    if (orderItems.some((item) => !item.productId || item.quantity < 1)) {
       return message.error("Please complete all order items");
     }
-
     setSavingOrder(true);
     try {
       const payload: CreateOrderDto = {
         userId: selectedUserId,
-        deliveryAddressId: selectedAddressId || "manual-address", // fallback if none returned
+        deliveryAddressId: selectedAddressId || "manual-address",
         deliverySlotId: selectedSlotId || undefined,
-        notes: notes,
-        orderItems: orderItems.map(item => ({
+        notes,
+        orderItems: orderItems.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
           priceAtPurchase: Number(item.priceAtPurchase),
         })),
       };
-
       await orderService.createOrder(payload);
       message.success("Order created successfully");
       closeCreateDrawer();
@@ -313,37 +250,29 @@ export default function Orders() {
     }
   };
 
-  const drawerTotal = orderItems.reduce((acc, item) => acc + (Number(item.priceAtPurchase) * item.quantity), 0);
+  const drawerTotal = orderItems.reduce(
+    (acc, item) => acc + Number(item.priceAtPurchase) * item.quantity, 0
+  );
 
+  // ── Columns ──
   const columns = [
     {
       title: "Order ID",
       dataIndex: "id",
       key: "id",
-      render: (id: string) => (
-        <Space>
-          <Text code>{id.substring(0, 8)}</Text>
-          <Tooltip title="Copy ID">
-            <Button
-              type="text"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={() => handleCopyId(id)}
-            />
-          </Tooltip>
-        </Space>
-      ),
+      width: 120,
+      render: (id: string) => <CopyableId id={id} />,
     },
     {
       title: "Customer",
       key: "customer",
       render: (_: any, record: Order) => {
         const name = record.user?.name || "Unknown";
-        const email = record.user?.email || "No email";
+        const email = record.user?.email || "";
         return (
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <Text strong>{name}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>{email}</Text>
+          <div>
+            <div style={{ fontWeight: 500, fontSize: 13, color: "#0F172A" }}>{name}</div>
+            {email && <div style={{ fontSize: 12, color: "#64748B" }}>{email}</div>}
           </div>
         );
       },
@@ -351,165 +280,171 @@ export default function Orders() {
     {
       title: "Items",
       key: "items",
+      width: 80,
       render: (_: any, record: Order) => {
         const count = record.orderItems?.length || record.items?.length || 0;
-        return <Text>{count} {count === 1 ? "item" : "items"}</Text>;
+        return <span style={{ fontSize: 13 }}>{count} {count === 1 ? "item" : "items"}</span>;
       },
     },
     {
-      title: "Total Amount",
+      title: "Total",
       dataIndex: "finalAmount",
       key: "finalAmount",
-      render: (amount: string) => <Text strong>₹{parseFloat(amount || "0").toFixed(2)}</Text>,
+      width: 110,
+      render: (amount: string) => (
+        <span style={{ fontWeight: 600, color: "#0F172A" }}>
+          ₹{parseFloat(amount || "0").toFixed(2)}
+        </span>
+      ),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status: string) => (
-        <Tag color={getStatusColor(status)}>
-          {status.replace(/_/g, " ")}
-        </Tag>
-      ),
+      width: 140,
+      render: (status: string) => <StatusBadge status={status} />,
     },
     {
       title: "Delivery Slot",
       key: "deliverySlot",
+      width: 130,
       render: (_: any, record: Order) => {
         const slot = record.deliverySlot;
-        if (!slot || !slot.date) return <Text type="secondary">-</Text>;
-        return <Text>{dayjs(slot.date).format("MMM D")} {slot.startTime}-{slot.endTime}</Text>;
+        if (!slot || !slot.date) return <span style={{ color: "#94A3B8" }}>—</span>;
+        return <span style={{ fontSize: 13 }}>{dayjs(slot.date).format("MMM D")} {slot.startTime}-{slot.endTime}</span>;
       },
     },
     {
-      title: "Created At",
+      title: "Created",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (date: string) => <Text>{dayjs(date).format("DD MMM YYYY, HH:mm")}</Text>,
+      width: 130,
+      render: (date: string) => <span style={{ fontSize: 13, color: "#64748B" }}>{dayjs(date).format("DD MMM YYYY")}</span>,
     },
     {
       title: "Actions",
       key: "actions",
+      width: 120,
+      fixed: "right" as const,
       render: (_: any, record: Order) => (
-        <Space size="small">
+        <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
           <Button
-            type="primary"
-            size="small"
+            className="ds-action-btn edit"
+            icon={<EyeOutlined style={{ fontSize: 14 }} />}
             onClick={() => navigate(`/orders/${record.id}`)}
-          >
-            View
-          </Button>
+            title="View Order"
+          />
           {isAdmin && (
             <>
               <Button
-                type="default"
-                size="small"
+                className="ds-action-btn edit"
+                icon={<EditOutlined style={{ fontSize: 14 }} />}
                 onClick={() => handleEdit(record)}
                 disabled={!!record.deletedAt}
-              >
-                Edit Status
-              </Button>
+                title="Edit Status"
+              />
               <Popconfirm
                 title="Delete Order"
                 description="Are you sure you want to delete this order?"
                 onConfirm={() => handleDelete(record.id)}
-                okText="Yes"
-                cancelText="No"
+                okText="Delete"
+                cancelText="Cancel"
                 okType="danger"
                 disabled={!!record.deletedAt}
               >
                 <Button
-                  danger
-                  size="small"
+                  className="ds-action-btn delete"
+                  icon={<DeleteOutlined style={{ fontSize: 14 }} />}
                   disabled={!!record.deletedAt}
-                >
-                  Delete
-                </Button>
+                  title="Delete Order"
+                />
               </Popconfirm>
             </>
           )}
-        </Space>
+        </div>
       ),
     },
   ];
 
   return (
     <div style={{ padding: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
-        <Title level={2} style={{ margin: 0 }}>Orders Management</Title>
+      {/* Page Header */}
+      <div className="ds-page-header">
+        <h1 className="ds-page-title">Orders</h1>
         {isAdmin && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateDrawer}>
+          <Button icon={<PlusOutlined />} className="ds-btn-primary" onClick={openCreateDrawer}>
             Create Order
           </Button>
         )}
       </div>
 
-      <Card style={{ marginBottom: 24 }} bodyStyle={{ padding: 16 }}>
-        <Space wrap>
-          <Input.Search
-            allowClear
-            placeholder="Search Order ID / User ID"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onSearch={() => {
-              setPage(1);
-              fetchOrders();
-            }}
-            style={{ width: 280 }}
-          />
-          <Select
-            style={{ width: 150 }}
-            value={status}
-            onChange={(val) => {
-              setStatus(val);
-              setPage(1);
-            }}
-          >
-            <Option value="all">All Status</Option>
-            <Option value="PENDING">Pending</Option>
-            <Option value="CONFIRMED">Confirmed</Option>
-            <Option value="PROCESSING">Processing</Option>
-            <Option value="OUT_FOR_DELIVERY">Out for Delivery</Option>
-            <Option value="DELIVERED">Delivered</Option>
-            <Option value="CANCELLED">Cancelled</Option>
-          </Select>
-          <RangePicker
-            onChange={(val) => {
-              setRange(val as any);
-              setPage(1);
-            }}
-          />
-          <Button
-            onClick={() => {
-              setSearch("");
-              setStatus("all");
-              setRange(null);
-              setPage(1);
-            }}
-          >
-            Reset
-          </Button>
-        </Space>
-      </Card>
+      {/* Filters */}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #E2E8F0",
+          borderRadius: 12,
+          padding: "16px 20px",
+          marginBottom: 20,
+          display: "flex",
+          gap: 12,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <Input.Search
+          allowClear
+          placeholder="Search Order ID / User ID"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onSearch={() => { setPage(1); fetchOrders(); }}
+          style={{ width: 280, borderRadius: 8 }}
+        />
+        <Select
+          style={{ width: 160 }}
+          value={status}
+          onChange={(val) => { setStatus(val); setPage(1); }}
+        >
+          <Option value="all">All Status</Option>
+          <Option value="PENDING">Pending</Option>
+          <Option value="CONFIRMED">Confirmed</Option>
+          <Option value="PROCESSING">Processing</Option>
+          <Option value="OUT_FOR_DELIVERY">Out for Delivery</Option>
+          <Option value="DELIVERED">Delivered</Option>
+          <Option value="CANCELLED">Cancelled</Option>
+        </Select>
+        <RangePicker onChange={(val) => { setRange(val as any); setPage(1); }} />
+        <Button onClick={() => { setSearch(""); setStatus("all"); setRange(null); setPage(1); }}>
+          Reset
+        </Button>
+      </div>
 
-      <Card bodyStyle={{ padding: 0 }}>
+      {/* Table */}
+      <div className="ds-table-wrapper">
         <Table
           rowKey="id"
           loading={loading}
           columns={columns}
           dataSource={orders}
+          scroll={{ x: 1000 }}
           pagination={{
             current: page,
             pageSize,
             total,
             showSizeChanger: true,
-            onChange: (p, ps) => {
-              setPage(p);
-              setPageSize(ps);
-            },
+            showTotal: (t, r) => `${r[0]}-${r[1]} of ${t} orders`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps); },
+          }}
+          locale={{
+            emptyText: (
+              <div className="ds-empty">
+                <div className="ds-empty-icon">🛒</div>
+                <div className="ds-empty-text">No orders found</div>
+              </div>
+            ),
           }}
         />
-      </Card>
+      </div>
 
       {/* Edit Status Modal */}
       <Modal
@@ -518,6 +453,7 @@ export default function Orders() {
         onOk={handleEditModalOk}
         onCancel={() => setIsEditModalVisible(false)}
         okText="Update"
+        okButtonProps={{ style: { background: "#0F172A", borderColor: "#0F172A" } }}
       >
         <Form form={editForm} layout="vertical">
           <Form.Item name="status" label="Status" rules={[{ required: true }]}>
@@ -533,193 +469,231 @@ export default function Orders() {
         </Form>
       </Modal>
 
-      {/* Create Order Drawer */}
-      <Drawer
+      {/* Create Order Drawer (restyled) */}
+      <DrawerForm
+        isOpen={isDrawerVisible}
         title="Create New Order"
-        width={480}
         onClose={closeCreateDrawer}
-        open={isDrawerVisible}
-        footer={
-          <div style={{ textAlign: 'right' }}>
-            <Button onClick={closeCreateDrawer} style={{ marginRight: 8 }}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateOrder} type="primary" loading={savingOrder}>
-              Create Order
-            </Button>
-          </div>
-        }
+        onSubmit={handleCreateOrder}
+        isSubmitting={savingOrder}
+        submitLabel="Create Order"
+        width={680}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Step 1 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* Step 1: Customer */}
           <div>
-            <Text strong>Step 1: Select Customer</Text>
+            <div className="ds-section-label">Step 1: Select Customer</div>
             <Select
               showSearch
               placeholder="Search user by name or email"
-              style={{ width: '100%', marginTop: 8 }}
+              style={{ width: "100%" }}
               onSearch={searchCustomers}
               onChange={setSelectedUserId}
               value={selectedUserId || undefined}
               filterOption={false}
               loading={loadingUsers}
             >
-              {users.map(u => (
+              {users.map((u) => (
                 <Option key={u.id} value={u.id}>
-                  {u.name || u.email} ({u.email})
+                  {u.name || u.username} ({u.email || u.mobile})
                 </Option>
               ))}
             </Select>
             {selectedUserId && (
-              <Tag color="blue" style={{ marginTop: 8 }}>
-                Selected User ID: {selectedUserId}
-              </Tag>
+              <div style={{ marginTop: 8 }}>
+                <span className="ds-badge confirmed">Selected: {selectedUserId.substring(0, 8)}…</span>
+              </div>
             )}
           </div>
 
-          {/* Step 2 */}
+          {/* Step 2: Delivery Address */}
           <div>
-            <Text strong>Step 2: Select Delivery Address</Text>
-            {loadingAddresses ? <div style={{ marginTop: 8 }}><Spin size="small" /></div> : (
-              addresses.length > 0 ? (
-                <Radio.Group 
-                  style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}
-                  value={selectedAddressId} 
-                  onChange={e => setSelectedAddressId(e.target.value)}
-                >
-                  {addresses.map(a => (
-                    <Radio key={a.id} value={a.id}>
-                      {a.street}, {a.city} {a.postalCode}
-                    </Radio>
-                  ))}
-                </Radio.Group>
-              ) : selectedUserId ? (
-                <div style={{ marginTop: 8 }}><Text type="secondary">No saved addresses found. Using manual address fallback.</Text></div>
-              ) : null
+            <div className="ds-section-label">Step 2: Delivery Address</div>
+            {loadingAddresses ? (
+              <div style={{ marginTop: 8 }}><Spin size="small" /></div>
+            ) : addresses.length > 0 ? (
+              <Radio.Group
+                style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}
+                value={selectedAddressId}
+                onChange={(e) => setSelectedAddressId(e.target.value)}
+              >
+                {addresses.map((a) => (
+                  <Radio key={a.id} value={a.id}>
+                    {a.street}, {a.city} {a.postalCode}
+                  </Radio>
+                ))}
+              </Radio.Group>
+            ) : selectedUserId ? (
+              <p style={{ fontSize: 13, color: "#94A3B8", marginTop: 8 }}>
+                No saved addresses found. Using fallback.
+              </p>
+            ) : null}
+          </div>
+
+          {/* Step 3: Delivery Slot */}
+          <div>
+            <div className="ds-section-label">Step 3: Delivery Slot (Optional)</div>
+            {loadingSlots ? (
+              <div style={{ marginTop: 8 }}><Spin size="small" /></div>
+            ) : slots.length > 0 ? (
+              <Select
+                style={{ width: "100%", marginTop: 8 }}
+                placeholder="Select a slot"
+                value={selectedSlotId || undefined}
+                onChange={setSelectedSlotId}
+                allowClear
+              >
+                {slots.map((s) => (
+                  <Option key={s.id} value={s.id}>
+                    {s.date ? dayjs(s.date).format("MMM D") : "Any"} | {s.startTime} - {s.endTime}
+                  </Option>
+                ))}
+              </Select>
+            ) : (
+              <p style={{ fontSize: 13, color: "#94A3B8", marginTop: 8 }}>No delivery slots available.</p>
             )}
           </div>
 
-          {/* Step 3 */}
+          {/* Step 4: Order Items */}
           <div>
-            <Text strong>Step 3: Select Delivery Slot (Optional)</Text>
-            {loadingSlots ? <div style={{ marginTop: 8 }}><Spin size="small" /></div> : (
-              slots.length > 0 ? (
-                <Select
-                  style={{ width: '100%', marginTop: 8 }}
-                  placeholder="Select a slot"
-                  value={selectedSlotId || undefined}
-                  onChange={setSelectedSlotId}
-                  allowClear
-                >
-                  {slots.map(s => (
-                    <Option key={s.id} value={s.id}>
-                      {s.date ? dayjs(s.date).format("MMM D") : "Any"} | {s.startTime} - {s.endTime}
-                    </Option>
-                  ))}
-                </Select>
-              ) : (
-                <div style={{ marginTop: 8 }}><Text type="secondary">No delivery slots available.</Text></div>
-              )
-            )}
-          </div>
-
-          {/* Step 4 */}
-          <div>
-            <Text strong>Step 4: Order Items</Text>
-            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="ds-section-label">Step 4: Order Items</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {orderItems.map((item, idx) => (
-                <Card size="small" key={idx} bodyStyle={{ padding: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text strong>Item {idx + 1}</Text>
+                <div
+                  key={idx}
+                  style={{
+                    background: "#F8FAFC",
+                    border: "1px solid #E2E8F0",
+                    borderRadius: 10,
+                    padding: 14,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                    <span style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>Item {idx + 1}</span>
                     {orderItems.length > 1 && (
-                      <Button type="text" danger size="small" icon={<CloseOutlined />} onClick={() => {
-                        const newItems = [...orderItems];
-                        newItems.splice(idx, 1);
-                        setOrderItems(newItems);
-                      }} />
+                      <button
+                        className="ds-copy-btn"
+                        onClick={() => {
+                          const newItems = [...orderItems];
+                          newItems.splice(idx, 1);
+                          setOrderItems(newItems);
+                        }}
+                        style={{ color: "#EF4444" }}
+                      >
+                        <CloseOutlined style={{ fontSize: 12 }} />
+                      </button>
                     )}
                   </div>
-                  
                   <Select
                     showSearch
                     placeholder="Search product"
-                    style={{ width: '100%', marginBottom: 8 }}
+                    style={{ width: "100%", marginBottom: 10 }}
                     value={item.productId || undefined}
                     loading={loadingProducts}
                     filterOption={(input, option) =>
-                      (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())
+                      (option?.children as unknown as string)
+                        ?.toLowerCase()
+                        .includes(input.toLowerCase())
                     }
                     onChange={(val) => {
                       const newItems = [...orderItems];
-                      const product = products.find(p => p.id === val);
-                      newItems[idx] = { ...item, productId: val, priceAtPurchase: product ? product.price : 0 };
+                      const product = products.find((p) => p.id === val);
+                      newItems[idx] = {
+                        ...item,
+                        productId: val,
+                        priceAtPurchase: product ? product.price : 0,
+                      };
                       setOrderItems(newItems);
                     }}
                   >
-                    {products.map(p => (
+                    {products.map((p) => (
                       <Option key={p.id} value={p.id}>
-                        {p.name} - ₹{p.price}
+                        {p.name} — ₹{p.price}
                       </Option>
                     ))}
                   </Select>
-                  
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <div style={{ flex: 1 }}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>Qty</Text>
-                      <Input 
-                        type="number" 
-                        min={1} 
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                    <div>
+                      <label className="ds-label">Qty</label>
+                      <input
+                        className="ds-input"
+                        type="number"
+                        min={1}
                         value={item.quantity}
-                        onChange={e => {
+                        onChange={(e) => {
                           const newItems = [...orderItems];
                           newItems[idx].quantity = Number(e.target.value) || 1;
                           setOrderItems(newItems);
                         }}
                       />
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>Price (₹)</Text>
-                      <Input 
-                        type="number" 
+                    <div>
+                      <label className="ds-label">Price (₹)</label>
+                      <input
+                        className="ds-input"
+                        type="number"
                         value={item.priceAtPurchase}
-                        onChange={e => {
+                        onChange={(e) => {
                           const newItems = [...orderItems];
                           newItems[idx].priceAtPurchase = Number(e.target.value) || 0;
                           setOrderItems(newItems);
                         }}
                       />
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>Subtotal</Text>
-                      <div style={{ padding: "4px 11px", background: "#f5f5f5", border: "1px solid #d9d9d9", borderRadius: 6 }}>
+                    <div>
+                      <label className="ds-label">Subtotal</label>
+                      <div
+                        className="ds-input"
+                        style={{ background: "#F1F5F9", color: "#64748B", cursor: "default" }}
+                      >
                         ₹{(Number(item.priceAtPurchase) * item.quantity).toFixed(2)}
                       </div>
                     </div>
                   </div>
-                </Card>
+                </div>
               ))}
-              <Button type="dashed" onClick={() => setOrderItems([...orderItems, { productId: "", quantity: 1, priceAtPurchase: 0 }])}>
+              <button
+                onClick={() =>
+                  setOrderItems([
+                    ...orderItems,
+                    { productId: "", quantity: 1, priceAtPurchase: 0 },
+                  ])
+                }
+                style={{
+                  border: "1px dashed #CBD5E1",
+                  background: "transparent",
+                  borderRadius: 8,
+                  padding: "10px",
+                  fontSize: 13,
+                  color: "#64748B",
+                  cursor: "pointer",
+                  textAlign: "center",
+                }}
+              >
                 + Add Another Item
-              </Button>
-            </div>
-            <div style={{ marginTop: 12, textAlign: 'right' }}>
-              <Text style={{ fontSize: 16 }}>Grand Total: <Text strong>₹{drawerTotal.toFixed(2)}</Text></Text>
+              </button>
+              <div style={{ textAlign: "right", paddingTop: 4 }}>
+                <span style={{ fontSize: 15, fontWeight: 600, color: "#0F172A" }}>
+                  Grand Total: ₹{drawerTotal.toFixed(2)}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Step 5 */}
+          {/* Step 5: Notes */}
           <div>
-            <Text strong>Step 5: Notes (Optional)</Text>
-            <Input.TextArea
+            <div className="ds-section-label">Step 5: Notes (Optional)</div>
+            <textarea
+              className="ds-input"
               rows={3}
               placeholder="Add delivery notes or special instructions"
-              style={{ marginTop: 8 }}
               value={notes}
-              onChange={e => setNotes(e.target.value)}
+              onChange={(e) => setNotes(e.target.value)}
+              style={{ resize: "vertical", minHeight: 80 }}
             />
           </div>
         </div>
-      </Drawer>
+      </DrawerForm>
     </div>
   );
 }

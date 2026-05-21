@@ -4,16 +4,10 @@ import {
   Button,
   Table,
   Popconfirm,
-  Space,
   Form,
-  Modal,
   Input,
-  Card,
-  Image,
-  Typography,
   App,
   Select,
-  Tag,
   Spin,
 } from "antd";
 import {
@@ -29,8 +23,10 @@ import { uploadService } from "../services/upload";
 import { useAuth } from "../contexts/AuthContext";
 import type { Category, SubCategoriesMap } from "../types/category";
 import AntdImageUpload from "../components/AntdImageUpload";
-
-const { Title, Text } = Typography;
+import StatusBadge from "../components/StatusBadge";
+import TableImage from "../components/TableImage";
+import CopyableId from "../components/CopyableId";
+import DrawerForm from "../components/DrawerForm";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -63,18 +59,16 @@ const Categories = () => {
   const [subcategoriesMap, setSubcategoriesMap] = useState<SubCategoriesMap>({});
   const [loadingSubMap, setLoadingSubMap] = useState<Record<string, boolean>>({});
 
-  // ── Add modal ──
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  // ── Drawer state ──
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [savingCategory, setSavingCategory] = useState(false);
+  
   // When opened from "+ Add Subcategory", we pre-select this parentId
   const preselectedParentId = useRef<string | null>(null);
   // Track which parentId was pre-selected so we can refresh only that subcategory list
   const addedUnderParentId = useRef<string | null>(null);
   const [form] = Form.useForm();
-
-  // ── Edit modal ──
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [editForm] = Form.useForm();
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
@@ -146,106 +140,79 @@ const Categories = () => {
     }
   };
 
-  // ── Add modal ──
-  const openAddModal = (preParentId: string | null = null) => {
+  // ── Drawer Handlers ──
+  const openAddDrawer = (preParentId: string | null = null) => {
     preselectedParentId.current = preParentId;
     addedUnderParentId.current = preParentId;
     form.resetFields();
     if (preParentId) {
       form.setFieldsValue({ parentId: preParentId });
     }
-    setIsModalVisible(true);
+    setEditingCategory(null);
+    setIsDrawerOpen(true);
   };
 
-  const handleModalOk = async () => {
-    try {
-      const values = await form.validateFields();
-
-      if (values.imageUrl instanceof File) {
-        values.imageUrl = await uploadService.uploadFile(values.imageUrl);
-      }
-
-      // If parentId is undefined/empty string, omit it
-      if (!values.parentId) {
-        delete values.parentId;
-      }
-
-      await categoryService.createCategory(values);
-      message.success("Category created successfully");
-      setIsModalVisible(false);
-      form.resetFields();
-
-      const parentId = addedUnderParentId.current;
-      if (parentId) {
-        // Only refresh that parent's subcategory list
-        await refreshSubcategories(parentId);
-      } else {
-        // Top-level add — refresh main list
-        fetchCategories();
-      }
-      addedUnderParentId.current = null;
-    } catch (error) {
-      if (error instanceof Error) {
-        message.error(error.message || "Failed to create category");
-      }
-    }
-  };
-
-  const handleModalCancel = () => {
-    setIsModalVisible(false);
-    form.resetFields();
-    addedUnderParentId.current = null;
-  };
-
-  // ── Edit modal ──
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
-    editForm.setFieldsValue({
+    form.setFieldsValue({
       name: category.name,
       slug: category.slug,
       description: category.description,
       imageUrl: category.imageUrl,
       parentId: category.parentId ?? undefined, // null → undefined for Select
     });
-    setIsEditModalVisible(true);
+    setIsDrawerOpen(true);
   };
 
-  const handleEditModalOk = async () => {
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setEditingCategory(null);
+    form.resetFields();
+    addedUnderParentId.current = null;
+  };
+
+  const handleSubmit = async () => {
     try {
-      const values = await editForm.validateFields();
-      if (!editingCategory) return;
+      const values = await form.validateFields();
+      setSavingCategory(true);
 
       if (values.imageUrl instanceof File) {
         values.imageUrl = await uploadService.uploadFile(values.imageUrl);
       }
 
-      // If parentId cleared → send null
       if (values.parentId === undefined) {
         values.parentId = null;
       }
 
-      await categoryService.updateCategory(editingCategory.id, values);
-      message.success("Category updated successfully");
-      setIsEditModalVisible(false);
-      setEditingCategory(null);
-      editForm.resetFields();
-      fetchCategories();
-
-      // If we edited a subcategory, refresh its parent's list too
-      if (editingCategory.parentId) {
-        refreshSubcategories(editingCategory.parentId);
+      if (editingCategory) {
+        await categoryService.updateCategory(editingCategory.id, values);
+        message.success("Category updated successfully");
+      } else {
+        await categoryService.createCategory(values);
+        message.success("Category created successfully");
       }
+
+      setIsDrawerOpen(false);
+      form.resetFields();
+
+      const parentId = editingCategory ? editingCategory.parentId : addedUnderParentId.current;
+      if (parentId) {
+        // Only refresh that parent's subcategory list
+        await refreshSubcategories(parentId);
+      } else {
+        // Top-level add/edit — refresh main list
+        fetchCategories();
+      }
+      
+      setEditingCategory(null);
+      addedUnderParentId.current = null;
     } catch (error) {
       if (error instanceof Error) {
-        message.error(error.message || "Failed to update category");
+        message.error(error.message || "Failed to save category");
       }
+    } finally {
+      setSavingCategory(false);
     }
-  };
-
-  const handleEditModalCancel = () => {
-    setIsEditModalVisible(false);
-    setEditingCategory(null);
-    editForm.resetFields();
   };
 
   // ── Delete ──
@@ -269,35 +236,31 @@ const Categories = () => {
 
   // ── Shared action buttons ──
   const renderActions = (record: Category) => (
-    <Space size="small">
+    <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
       <Button
-        type="primary"
-        size="small"
-        icon={<EditOutlined />}
+        className="ds-action-btn edit"
+        icon={<EditOutlined style={{ fontSize: 14 }} />}
         onClick={() => handleEdit(record)}
         disabled={!isAdmin || !!record.deletedAt}
-      >
-        Edit
-      </Button>
+        title="Edit"
+      />
       <Popconfirm
         title="Delete Category"
         description="Are you sure you want to delete this category?"
         onConfirm={() => handleDelete(record)}
-        okText="Yes"
-        cancelText="No"
+        okText="Delete"
+        cancelText="Cancel"
         okType="danger"
         disabled={!isAdmin || !!record.deletedAt}
       >
         <Button
-          danger
-          size="small"
-          icon={<DeleteOutlined />}
+          className="ds-action-btn delete"
+          icon={<DeleteOutlined style={{ fontSize: 14 }} />}
           disabled={!isAdmin || !!record.deletedAt}
-        >
-          Delete
-        </Button>
+          title="Delete"
+        />
       </Popconfirm>
-    </Space>
+    </div>
   );
 
   // ── Resolve parentId → name ──
@@ -325,7 +288,7 @@ const Categories = () => {
             )
           }
           onClick={() => toggleRow(record.id)}
-          style={{ color: "#6b7280" }}
+          style={{ color: "#64748B" }}
         />
       ),
     },
@@ -333,33 +296,10 @@ const Categories = () => {
       title: "Image",
       dataIndex: "imageUrl",
       key: "imageUrl",
-      width: 72,
-      render: (imageUrl: string | null) =>
-        imageUrl ? (
-          <Image
-            width={40}
-            height={40}
-            src={imageUrl}
-            style={{ borderRadius: 4, objectFit: "cover" }}
-            fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%23e5e7eb'/%3E%3C/svg%3E"
-          />
-        ) : (
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 4,
-              background: "#e5e7eb",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 10,
-              color: "#9ca3af",
-            }}
-          >
-            N/A
-          </div>
-        ),
+      width: 64,
+      render: (imageUrl: string | null, record: Category) => (
+        <TableImage src={imageUrl} alt={record.name} />
+      ),
     },
     {
       title: "Name",
@@ -382,9 +322,9 @@ const Categories = () => {
       key: "slug",
       sorter: (a: Category, b: Category) => a.slug.localeCompare(b.slug),
       render: (slug: string) => (
-        <Text code style={{ fontSize: "12px" }}>
+        <span style={{ fontSize: "12px", fontFamily: "monospace", background: "#f1f5f9", padding: "2px 4px", borderRadius: "4px" }}>
           {slug}
-        </Text>
+        </span>
       ),
     },
     {
@@ -398,26 +338,25 @@ const Categories = () => {
       title: "Status",
       key: "status",
       width: 90,
-      render: (_: unknown, record: Category) =>
-        record.deletedAt ? (
-          <Tag color="red">Deleted</Tag>
-        ) : (
-          <Tag color="green">Active</Tag>
-        ),
+      render: (_: unknown, record: Category) => (
+        <StatusBadge status={record.deletedAt ? "Deleted" : "ACTIVE"} />
+      ),
     },
     {
-      title: "Created At",
+      title: "Created",
       dataIndex: "createdAt",
       key: "createdAt",
-      width: 160,
-      render: (d: string) => formatDate(d),
+      width: 130,
+      render: (d: string) => (
+        <span style={{ fontSize: 12, color: "#64748B" }}>{new Date(d).toLocaleDateString()}</span>
+      ),
       sorter: (a: Category, b: Category) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
     {
       title: "Actions",
       key: "actions",
-      width: 160,
+      width: 100,
       fixed: "right" as const,
       render: (_: unknown, record: Category) => renderActions(record),
     },
@@ -432,39 +371,28 @@ const Categories = () => {
     return (
       <div
         style={{
-          borderLeft: "3px solid #3DAA5C",
-          marginLeft: 24,
-          marginBottom: 4,
-          background: "#f6fff9",
-          borderRadius: "0 8px 8px 0",
-          padding: "8px 0",
+          borderLeft: "3px solid #10B981",
+          marginLeft: 0,
+          background: "#F8FAFC",
+          borderRadius: "0 0 0 0",
         }}
       >
         {isLoadingSubs ? (
           <div style={{ padding: "16px 24px", textAlign: "center" }}>
             <Spin size="small" />
-            <span style={{ marginLeft: 8, color: "#6b7280", fontSize: 13 }}>
+            <span style={{ marginLeft: 8, color: "#64748B", fontSize: 13 }}>
               Loading subcategories…
             </span>
           </div>
         ) : !subs || subs.length === 0 ? (
-          <div
-            style={{
-              padding: "12px 24px",
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-            }}
-          >
-            <Text type="secondary" style={{ fontSize: 13 }}>
-              No subcategories found
-            </Text>
+          <div style={{ padding: "12px 24px", display: "flex", alignItems: "center", gap: 16 }}>
+            <span style={{ fontSize: 13, color: "#64748B" }}>No subcategories found</span>
             {isAdmin && (
               <Button
                 size="small"
-                type="dashed"
                 icon={<PlusOutlined />}
                 onClick={() => openAddModal(parentId)}
+                style={{ borderStyle: "dashed" }}
               >
                 Add Subcategory
               </Button>
@@ -475,132 +403,70 @@ const Categories = () => {
             {subs.map((sub) => (
               <div
                 key={sub.id}
+                className="ds-sub-row"
                 style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "72px 1fr 140px 1fr 90px 160px 160px",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 16px",
-                  borderBottom: "1px solid #e9fce9",
+                  gridTemplateColumns: "60px 1fr 150px 1fr 100px 100px",
                 }}
               >
                 {/* Image */}
-                <div>
-                  {sub.imageUrl ? (
-                    <img
-                      src={sub.imageUrl}
-                      alt={sub.name}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        objectFit: "cover",
-                        borderRadius: 4,
-                        border: "1px solid #d1fae5",
-                      }}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        background: "#e5e7eb",
-                        borderRadius: 4,
-                      }}
-                    />
-                  )}
-                </div>
+                <TableImage src={sub.imageUrl} alt={sub.name} />
 
                 {/* Name + SUB badge */}
-                <div
-                  style={{
-                    paddingLeft: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <Tag
-                    color="cyan"
-                    style={{ fontSize: 10, padding: "0 4px", lineHeight: "18px" }}
-                  >
-                    SUB
-                  </Tag>
-                  <Text style={{ fontSize: 13 }}>{sub.name}</Text>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 8 }}>
+                  <span className="ds-badge sub" style={{ fontSize: 10 }}>SUB</span>
+                  <span style={{ fontSize: 13, color: "#0F172A" }}>{sub.name}</span>
                 </div>
 
                 {/* Slug */}
-                <Text code style={{ fontSize: 11 }}>
+                <span style={{ fontFamily: "monospace", fontSize: 11, color: "#64748B" }}>
                   {sub.slug}
-                </Text>
-
-
+                </span>
 
                 {/* Description */}
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                <span style={{ fontSize: 12, color: "#64748B" }}>
                   {truncate(sub.description, 40)}
-                </Text>
+                </span>
 
                 {/* Status */}
-                {sub.deletedAt ? (
-                  <Tag color="red" style={{ fontSize: 11 }}>
-                    Inactive
-                  </Tag>
-                ) : (
-                  <Tag color="green" style={{ fontSize: 11 }}>
-                    Active
-                  </Tag>
-                )}
-
-                {/* Created At */}
-                <Text style={{ fontSize: 11, color: "#9ca3af" }}>
-                  {formatDate(sub.createdAt)}
-                </Text>
+                <StatusBadge status={sub.deletedAt ? "Deleted" : "ACTIVE"} />
 
                 {/* Actions */}
-                <Space size="small">
+                <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
                   <Button
-                    type="primary"
-                    size="small"
-                    icon={<EditOutlined />}
+                    className="ds-action-btn edit"
+                    icon={<EditOutlined style={{ fontSize: 13 }} />}
                     onClick={() => handleEdit(sub)}
                     disabled={!isAdmin || !!sub.deletedAt}
-                  >
-                    Edit
-                  </Button>
+                    title="Edit"
+                  />
                   <Popconfirm
                     title="Delete Subcategory"
                     description="Are you sure?"
                     onConfirm={() => handleDelete(sub)}
-                    okText="Yes"
-                    cancelText="No"
+                    okText="Delete"
+                    cancelText="Cancel"
                     okType="danger"
                     disabled={!isAdmin || !!sub.deletedAt}
                   >
                     <Button
-                      danger
-                      size="small"
-                      icon={<DeleteOutlined />}
+                      className="ds-action-btn delete"
+                      icon={<DeleteOutlined style={{ fontSize: 13 }} />}
                       disabled={!isAdmin || !!sub.deletedAt}
-                    >
-                      Delete
-                    </Button>
+                      title="Delete"
+                    />
                   </Popconfirm>
-                </Space>
+                </div>
               </div>
             ))}
 
             {/* Add Subcategory footer */}
             {isAdmin && (
-              <div style={{ padding: "8px 24px" }}>
+              <div style={{ padding: "10px 24px" }}>
                 <Button
                   size="small"
-                  type="dashed"
                   icon={<PlusOutlined />}
-                  onClick={() => openAddModal(parentId)}
+                  onClick={() => openAddDrawer(parentId)}
+                  style={{ borderStyle: "dashed", color: "#64748B" }}
                 >
                   Add Subcategory
                 </Button>
@@ -647,173 +513,114 @@ const Categories = () => {
   return (
     <div style={{ padding: "24px" }}>
       {/* Header */}
-      <div
-        style={{
-          marginBottom: "24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Title level={2} style={{ margin: 0 }}>
-          Categories Management
-        </Title>
-        <Space>
+      <div className="ds-page-header">
+        <h1 className="ds-page-title">Categories</h1>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <Input
             placeholder="Search categories…"
             allowClear
-            prefix={<SearchOutlined style={{ color: "rgba(0,0,0,.45)" }} />}
-            size="large"
-            style={{ width: 300 }}
+            prefix={<SearchOutlined style={{ color: "#94A3B8" }} />}
+            style={{ width: 260, borderRadius: 8, borderColor: "#E2E8F0" }}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
           {isAdmin && (
             <Button
-              type="primary"
               icon={<PlusOutlined />}
-              onClick={() => openAddModal(null)}
+              className="ds-btn-primary"
+              onClick={() => openAddDrawer(null)}
             >
               Add Category
             </Button>
           )}
-        </Space>
+        </div>
       </div>
 
       {/* Table */}
-      <Card>
+      <div className="ds-table-wrapper">
         <Table
           columns={columns}
           dataSource={filteredCategories}
           loading={loading}
           rowKey="id"
-          scroll={{ x: 1300 }}
+          scroll={{ x: 1000 }}
           expandable={expandable}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} categories`,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} categories`,
+          }}
+          locale={{
+            emptyText: (
+              <div className="ds-empty">
+                <div className="ds-empty-icon">📂</div>
+                <div className="ds-empty-text">No categories found</div>
+              </div>
+            ),
           }}
         />
-      </Card>
+      </div>
 
-      {/* ── Add Category Modal ── */}
-      {isAdmin && (
-        <Modal
-          title="Add New Category"
-          open={isModalVisible}
-          onOk={handleModalOk}
-          onCancel={handleModalCancel}
-          okText="Create"
-          cancelText="Cancel"
-          destroyOnClose
-        >
-          <Form form={form} layout="vertical" name="categoryForm">
-            <Form.Item
-              name="name"
-              label="Category Name"
-              rules={[
-                { required: true, message: "Please enter category name!" },
-                { min: 2, message: "Category name must be at least 2 characters!" },
-              ]}
-            >
-              <Input placeholder="Enter category name" />
-            </Form.Item>
+      {/* ── Category Drawer ── */}
+      <DrawerForm
+        isOpen={isDrawerOpen}
+        title={editingCategory ? "Edit Category" : "Add Category"}
+        onClose={handleCloseDrawer}
+        onSubmit={handleSubmit}
+        isSubmitting={savingCategory}
+        submitLabel={editingCategory ? "Save Changes" : "Create"}
+      >
+        <Form form={form} layout="vertical" name="categoryForm">
+          <Form.Item
+            name="name"
+            label="Category Name"
+            rules={[
+              { required: true, message: "Please enter category name!" },
+              { min: 2, message: "Category name must be at least 2 characters!" },
+            ]}
+          >
+            <Input placeholder="Enter category name" className="ds-input" />
+          </Form.Item>
 
-            <Form.Item
-              name="slug"
-              label="Slug"
-              rules={[
-                { required: true, message: "Please enter slug!" },
-                {
-                  pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-                  message: "Slug can only contain lowercase letters, numbers, and hyphens!",
-                },
-              ]}
-            >
-              <Input placeholder="Enter slug (e.g., electronics)" />
-            </Form.Item>
+          <Form.Item
+            name="slug"
+            label="Slug"
+            rules={[
+              { required: true, message: "Please enter slug!" },
+              {
+                pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+                message: "Slug can only contain lowercase letters, numbers, and hyphens!",
+              },
+            ]}
+          >
+            <Input placeholder="Enter slug (e.g., electronics)" className="ds-input" />
+          </Form.Item>
 
-            <Form.Item
-              name="description"
-              label="Description"
-              rules={[{ max: 500, message: "Description must be less than 500 characters!" }]}
-            >
-              <Input.TextArea placeholder="Enter category description" rows={3} />
-            </Form.Item>
+          <Form.Item
+            name="description"
+            label="Description"
+            rules={[{ max: 500, message: "Description must be less than 500 characters!" }]}
+          >
+            <Input.TextArea placeholder="Enter category description" rows={3} className="ds-input" />
+          </Form.Item>
 
-            <Form.Item name="parentId" label="Parent Category">
-              <Select placeholder="— None (Top-level category) —" allowClear>
-                {parentCategoryOptions()}
-              </Select>
-            </Form.Item>
-
-            <Form.Item name="imageUrl" label="Image">
-              <AntdImageUpload />
-            </Form.Item>
-          </Form>
-        </Modal>
-      )}
-
-      {/* ── Edit Category Modal ── */}
-      {isAdmin && (
-        <Modal
-          title="Edit Category"
-          open={isEditModalVisible}
-          onOk={handleEditModalOk}
-          onCancel={handleEditModalCancel}
-          okText="Update"
-          cancelText="Cancel"
-          destroyOnClose
-        >
-          <Form form={editForm} layout="vertical" name="editCategoryForm">
-            <Form.Item
-              name="name"
-              label="Category Name"
-              rules={[
-                { required: true, message: "Please enter category name!" },
-                { min: 2, message: "Category name must be at least 2 characters!" },
-              ]}
-            >
-              <Input placeholder="Enter category name" />
-            </Form.Item>
-
-            <Form.Item
-              name="slug"
-              label="Slug"
-              rules={[
-                { required: true, message: "Please enter slug!" },
-                {
-                  pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-                  message: "Slug can only contain lowercase letters, numbers, and hyphens!",
-                },
-              ]}
-            >
-              <Input placeholder="Enter slug (e.g., electronics)" />
-            </Form.Item>
-
-            <Form.Item
-              name="description"
-              label="Description"
-              rules={[{ max: 500, message: "Description must be less than 500 characters!" }]}
-            >
-              <Input.TextArea placeholder="Enter category description" rows={3} />
-            </Form.Item>
-
-            <Form.Item name="parentId" label="Parent Category">
+          <Form.Item name="parentId" label="Parent Category">
+            {editingCategory && editingCategory.parentId ? (
+              <Input value={resolveParentName(editingCategory.parentId)} disabled className="ds-input" />
+            ) : addedUnderParentId.current ? (
+              <Input value={resolveParentName(addedUnderParentId.current)} disabled className="ds-input" />
+            ) : (
               <Select placeholder="— None (Top-level category) —" allowClear>
                 {parentCategoryOptions(editingCategory?.id)}
               </Select>
-            </Form.Item>
+            )}
+          </Form.Item>
 
-            <Form.Item name="imageUrl" label="Image">
-              <AntdImageUpload />
-            </Form.Item>
-          </Form>
-        </Modal>
-      )}
+          <Form.Item name="imageUrl" label="Image">
+            <AntdImageUpload />
+          </Form.Item>
+        </Form>
+      </DrawerForm>
     </div>
   );
 };

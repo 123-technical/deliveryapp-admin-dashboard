@@ -6,7 +6,6 @@ import {
   Input,
   Select,
   Space,
-  Tag,
   Popconfirm,
   message,
   Modal,
@@ -17,7 +16,6 @@ import {
   Col,
   Card,
   Statistic,
-  Tooltip,
   Dropdown,
   type MenuProps,
 } from "antd";
@@ -51,6 +49,8 @@ import {
   listAllVehicleTypes,
   listAllLicenseTypes,
 } from "../services/riders";
+import StatusBadge from "../components/StatusBadge";
+import CopyableId from "../components/CopyableId";
 
 type SortOrder = "ascend" | "descend" | undefined;
 
@@ -375,9 +375,7 @@ export default function Riders() {
       key: "status",
       width: 120,
       render: (status: RiderStatus) => (
-        <Tag color={getStatusColor(status)} icon={getStatusIcon(status)}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-        </Tag>
+        <StatusBadge status={status} />
       ),
       filters: statusOptions
         .slice(1)
@@ -463,35 +461,34 @@ export default function Riders() {
       key: "actions",
       width: 120,
       render: (_: unknown, record: Rider) => (
-        <Space size="small">
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() =>
-                message.info("View details functionality coming soon")
-              }
-            />
-          </Tooltip>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
+        <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+          <Button
+            className="ds-action-btn edit"
+            icon={<EyeOutlined style={{ fontSize: 14 }} />}
+            onClick={() => message.info("View details functionality coming soon")}
+            title="View Details"
+          />
+          <Button
+            className="ds-action-btn edit"
+            icon={<EditOutlined style={{ fontSize: 14 }} />}
+            onClick={() => handleEdit(record)}
+            title="Edit"
+          />
           <Popconfirm
             title="Delete Rider"
             description="Are you sure you want to delete this rider?"
             onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
+            okText="Delete"
+            cancelText="Cancel"
+            okType="danger"
           >
-            <Tooltip title="Delete">
-              <Button type="text" icon={<DeleteOutlined />} danger />
-            </Tooltip>
+            <Button
+              className="ds-action-btn delete"
+              icon={<DeleteOutlined style={{ fontSize: 14 }} />}
+              title="Delete"
+            />
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ];
@@ -540,7 +537,12 @@ export default function Riders() {
   }, [data]);
 
   return (
-    <div>
+    <div style={{ padding: "24px" }}>
+      {/* Page header */}
+      <div className="ds-page-header" style={{ marginBottom: 24 }}>
+        <h1 className="ds-page-title">Riders</h1>
+      </div>
+
       {/* Stats Cards */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
@@ -643,28 +645,38 @@ export default function Riders() {
       </div>
 
       {/* Table */}
-      <Table
-        columns={columns}
-        dataSource={data}
-        loading={loading}
-        rowKey="id"
-        rowSelection={rowSelection}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} riders`,
-          onChange: (page, pageSize) => {
-            setPage(page);
-            setPageSize(pageSize || 10);
-          },
-        }}
-        onChange={handleTableChange}
-        scroll={{ x: 1200 }}
-      />
+      <div className="ds-table-wrapper">
+        <Table
+          columns={columns}
+          dataSource={data}
+          loading={loading}
+          rowKey="id"
+          rowSelection={rowSelection}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} riders`,
+            onChange: (page, pageSize) => {
+              setPage(page);
+              setPageSize(pageSize || 10);
+            },
+          }}
+          onChange={handleTableChange}
+          scroll={{ x: 1200 }}
+          locale={{
+            emptyText: (
+              <div className="ds-empty">
+                <div className="ds-empty-icon">🏍️</div>
+                <div className="ds-empty-text">No riders found</div>
+              </div>
+            ),
+          }}
+        />
+      </div>
 
       {/* Add/Edit Modal */}
       <Modal

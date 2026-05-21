@@ -6,7 +6,6 @@ import {
   Input,
   Select,
   Space,
-  Tag,
   Popconfirm,
   message,
   Modal,
@@ -15,9 +14,6 @@ import {
   Col,
   Card,
   Statistic,
-  Tooltip,
-  Checkbox,
-  Typography,
   Avatar,
   Drawer,
   Descriptions,
@@ -33,7 +29,9 @@ import {
   TeamOutlined,
   UserSwitchOutlined,
 } from "@ant-design/icons";
-import type { User, UserRole,  } from "../types/user";
+import type { User, UserRole } from "../types/user";
+import StatusBadge from "../components/StatusBadge";
+import CopyableId from "../components/CopyableId";
 import {
   fetchUsers,
   updateUser,
@@ -346,19 +344,18 @@ export default function Users() {
       dataIndex: "role",
       key: "role",
       width: 160,
-      render: (role: UserRole) => (
-        <Tag 
-          color={getRoleColor(role)} 
-          style={{ 
-            borderRadius: "6px", 
-            padding: "2px 10px",
-            fontWeight: 500,
-            textTransform: "capitalize"
-          }}
-        >
-          {role.toLowerCase().replace("_", " ")}
-        </Tag>
-      ),
+      render: (role: UserRole) => {
+        const roleClass = role.toLowerCase() === "admin" || role.toLowerCase() === "super_admin"
+          ? "cancelled"
+          : role.toLowerCase() === "delivery_personnel"
+          ? "confirmed"
+          : "active";
+        return (
+          <span className={`ds-badge ${roleClass}`}>
+            {role.toLowerCase().replace(/_/g, " ")}
+          </span>
+        );
+      },
       filters: roleOptions
         .slice(1)
         .map((option) => ({ text: option.label, value: option.value })),
@@ -381,53 +378,44 @@ export default function Users() {
       title: "Actions",
       key: "actions",
       width: 120,
+      fixed: "right" as const,
       render: (_: unknown, record: User) => (
-        <Space size="small">
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => handleViewDetails(record.id)}
-            />
-          </Tooltip>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
+        <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+          <Button
+            className="ds-action-btn edit"
+            icon={<EyeOutlined style={{ fontSize: 14 }} />}
+            onClick={() => handleViewDetails(record.id)}
+            title="View Details"
+          />
+          <Button
+            className="ds-action-btn edit"
+            icon={<EditOutlined style={{ fontSize: 14 }} />}
+            onClick={() => handleEdit(record)}
+            title="Edit"
+          />
           <Popconfirm
             title="Delete User"
             description="Are you sure you want to delete this user?"
             onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
+            okText="Delete"
+            cancelText="Cancel"
+            okType="danger"
           >
-            <Tooltip title="Delete">
-              <Button type="text" icon={<DeleteOutlined />} danger />
-            </Tooltip>
+            <Button
+              className="ds-action-btn delete"
+              icon={<DeleteOutlined style={{ fontSize: 14 }} />}
+              title="Delete"
+            />
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ];
 
-
-
   return (
-    <div style={{ padding: 24 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 24,
-        }}
-      >
-        <Typography.Title level={2} style={{ margin: 0 }}>
-          User Management
-        </Typography.Title>
+    <div style={{ padding: 24, background: "#F8FAFC", minHeight: "100vh" }}>
+      <div className="ds-page-header" style={{ marginBottom: 24 }}>
+        <h1 className="ds-page-title">User Management</h1>
       </div>
 
       {/* Statistics Cards */}
@@ -544,28 +532,38 @@ export default function Users() {
       </div>
 
       {/* Table */}
-      <Table
-        columns={columns}
-        dataSource={data}
-        loading={loading}
-        rowKey="id"
-        rowSelection={rowSelection}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} users`,
-          onChange: (page, pageSize) => {
-            setPage(page);
-            setPageSize(pageSize || 10);
-          },
-        }}
-        onChange={handleTableChange}
-        scroll={{ x: 1200 }}
-      />
+      <div className="ds-table-wrapper">
+        <Table
+          columns={columns}
+          dataSource={data}
+          loading={loading}
+          rowKey="id"
+          rowSelection={rowSelection}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} users`,
+            onChange: (page, pageSize) => {
+              setPage(page);
+              setPageSize(pageSize || 10);
+            },
+          }}
+          onChange={handleTableChange}
+          scroll={{ x: 1200 }}
+          locale={{
+            emptyText: (
+              <div className="ds-empty">
+                <div className="ds-empty-icon">👤</div>
+                <div className="ds-empty-text">No users found</div>
+              </div>
+            ),
+          }}
+        />
+      </div>
 
       {/* Add/Edit Modal */}
       <Modal

@@ -1,17 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Card,
   Table,
   Button,
-  Space,
   Modal,
   Form,
   Input,
-  message,
   Popconfirm,
-  Image,
-  Typography,
+  App,
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { brandService } from "../services/brands";
@@ -19,8 +15,9 @@ import { uploadService } from "../services/upload";
 import { useAuth } from "../contexts/AuthContext";
 import type { Brand, CreateBrandDto, UpdateBrandDto } from "../types/brand";
 import AntdImageUpload from "../components/AntdImageUpload";
-
-const { Title } = Typography;
+import StatusBadge from "../components/StatusBadge";
+import CopyableId from "../components/CopyableId";
+import TableImage from "../components/TableImage";
 
 const Brands = () => {
   const navigate = useNavigate();
@@ -32,73 +29,42 @@ const Brands = () => {
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const { user } = useAuth();
+  const { message } = App.useApp();
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
-  useEffect(() => {
-    fetchBrands();
-  }, []);
+  useEffect(() => { fetchBrands(); }, []);
 
   const fetchBrands = async () => {
     setLoading(true);
     try {
-      const response = await brandService.getBrands({
-        page: 1,
-        pageSize: 100,
-      });
+      const response = await brandService.getBrands({ page: 1, pageSize: 100 });
       setBrands(response.data);
-    } catch (error) {
-      console.error("Failed to fetch brands:", error);
+    } catch {
       message.error("Failed to fetch brands");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddBrand = () => {
-    form.resetFields();
-    setIsModalVisible(true);
-  };
-
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
-      
       let finalLogoUrl = values.logoUrl;
-      if (finalLogoUrl instanceof File) {
-        finalLogoUrl = await uploadService.uploadFile(finalLogoUrl);
-      }
-
+      if (finalLogoUrl instanceof File) finalLogoUrl = await uploadService.uploadFile(finalLogoUrl);
       const brandData: CreateBrandDto = {
         name: values.name,
         logoUrl: finalLogoUrl || undefined,
         description: values.description || undefined,
       };
-
       await brandService.createBrand(brandData);
       message.success("Brand created successfully");
       setIsModalVisible(false);
       form.resetFields();
       fetchBrands();
-    } catch (error) {
-      console.error("Failed to create brand:", error);
+    } catch {
       message.error("Failed to create brand");
     }
-  };
-
-  const handleModalCancel = () => {
-    setIsModalVisible(false);
-    form.resetFields();
-  };
-
-  const handleEdit = (brand: Brand) => {
-    setEditingBrand(brand);
-    editForm.setFieldsValue({
-      name: brand.name,
-      logoUrl: brand.logoUrl,
-      description: brand.description,
-    });
-    setIsEditModalVisible(true);
   };
 
   const handleEditModalOk = async () => {
@@ -106,16 +72,12 @@ const Brands = () => {
       const values = await editForm.validateFields();
       if (editingBrand) {
         let finalLogoUrl = values.logoUrl;
-        if (finalLogoUrl instanceof File) {
-          finalLogoUrl = await uploadService.uploadFile(finalLogoUrl);
-        }
-
+        if (finalLogoUrl instanceof File) finalLogoUrl = await uploadService.uploadFile(finalLogoUrl);
         const brandData: UpdateBrandDto = {
           name: values.name,
           logoUrl: finalLogoUrl || undefined,
           description: values.description || undefined,
         };
-
         await brandService.updateBrand(editingBrand.id, brandData);
         message.success("Brand updated successfully");
         setIsEditModalVisible(false);
@@ -123,16 +85,9 @@ const Brands = () => {
         setEditingBrand(null);
         fetchBrands();
       }
-    } catch (error) {
-      console.error("Failed to update brand:", error);
+    } catch {
       message.error("Failed to update brand");
     }
-  };
-
-  const handleEditModalCancel = () => {
-    setIsEditModalVisible(false);
-    editForm.resetFields();
-    setEditingBrand(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -140,14 +95,9 @@ const Brands = () => {
       await brandService.deleteBrand(id);
       message.success("Brand deleted successfully");
       fetchBrands();
-    } catch (error) {
-      console.error("Failed to delete brand:", error);
+    } catch {
       message.error("Failed to delete brand");
     }
-  };
-
-  const handleViewDetails = (brand: Brand) => {
-    navigate(`/brand/${brand.id}`);
   };
 
   const columns = [
@@ -155,44 +105,38 @@ const Brands = () => {
       title: "ID",
       dataIndex: "id",
       key: "id",
-      width: 100,
-      render: (id: string) => (
-        <Typography.Text
-          copyable={{ text: id }}
-          style={{ fontFamily: "monospace", fontSize: "12px" }}
-        >
-          {id.substring(0, 8)}...
-        </Typography.Text>
-      ),
+      width: 110,
+      render: (id: string) => <CopyableId id={id} />,
     },
     {
       title: "Logo",
       dataIndex: "logoUrl",
       key: "logoUrl",
-      width: 80,
-      render: (logoUrl: string | null) => (
-        <Image
-          width={40}
-          height={40}
-          src={logoUrl || ""}
-          fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHANwDrkl1AuO+pmgAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAwqADAAQAAAABAAAAwwAAAAD9b/HnAAAHlklEQVR4Ae3dP3Ik1RnG4W+FgYxN"
-          style={{ borderRadius: 4 }}
-        />
+      width: 60,
+      render: (logoUrl: string | null, record: Brand) => (
+        <TableImage src={logoUrl} alt={record.name} />
       ),
     },
     {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      sorter: (a: Brand, b: Brand) => a.name.localeCompare(b.name),
       render: (name: string, record: Brand) => (
-        <Button
-          type="link"
-          onClick={() => handleViewDetails(record)}
-          style={{ padding: 0, height: "auto" }}
+        <button
+          style={{
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            color: "#0F172A",
+            fontWeight: 500,
+            fontSize: 13,
+            textAlign: "left",
+          }}
+          onClick={() => navigate(`/brand/${record.id}`)}
         >
           {name}
-        </Button>
+        </button>
       ),
     },
     {
@@ -200,138 +144,115 @@ const Brands = () => {
       dataIndex: "description",
       key: "description",
       ellipsis: true,
-      render: (description: string | null) => description || "-",
+      render: (description: string | null) => (
+        <span style={{ fontSize: 13, color: "#64748B" }}>{description || "—"}</span>
+      ),
     },
     {
       title: "Status",
       key: "status",
       width: 100,
       render: (_: unknown, record: Brand) => (
-        <Typography.Text
-          type={record.deletedAt ? "danger" : "success"}
-          style={{ fontWeight: 500 }}
-        >
-          {record.deletedAt ? "Deleted" : "Active"}
-        </Typography.Text>
+        <StatusBadge status={record.deletedAt ? "Deleted" : "ACTIVE"} />
       ),
     },
     {
-      title: "Created At",
+      title: "Created",
       dataIndex: "createdAt",
       key: "createdAt",
-      width: 150,
-      render: (date: string) => new Date(date).toLocaleString(),
+      width: 120,
+      render: (date: string) => (
+        <span style={{ fontSize: 12, color: "#64748B" }}>
+          {new Date(date).toLocaleDateString()}
+        </span>
+      ),
       sorter: (a: Brand, b: Brand) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
     {
-      title: "Updated At",
-      dataIndex: "updatedAt",
-      key: "updatedAt",
-      width: 150,
-      render: (date: string) => new Date(date).toLocaleString(),
-      sorter: (a: Brand, b: Brand) =>
-        new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
-    },
-    {
-      title: "Deleted At",
-      dataIndex: "deletedAt",
-      key: "deletedAt",
-      width: 150,
-      render: (date: string | null) =>
-        date ? new Date(date).toLocaleString() : "-",
-      sorter: (a: Brand, b: Brand) => {
-        if (!a.deletedAt && !b.deletedAt) return 0;
-        if (!a.deletedAt) return 1;
-        if (!b.deletedAt) return -1;
-        return (
-          new Date(a.deletedAt).getTime() - new Date(b.deletedAt).getTime()
-        );
-      },
-    },
-    {
       title: "Actions",
       key: "actions",
-      width: 150,
+      width: 100,
       fixed: "right" as const,
       render: (_: unknown, record: Brand) => (
-        <Space size="small">
+        <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
           {isAdmin && (
             <>
               <Button
-                type="primary"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => handleEdit(record)}
+                className="ds-action-btn edit"
+                icon={<EditOutlined style={{ fontSize: 14 }} />}
+                onClick={() => {
+                  setEditingBrand(record);
+                  editForm.setFieldsValue({
+                    name: record.name,
+                    logoUrl: record.logoUrl,
+                    description: record.description,
+                  });
+                  setIsEditModalVisible(true);
+                }}
                 disabled={!!record.deletedAt}
-              >
-                Edit
-              </Button>
+                title="Edit"
+              />
               <Popconfirm
                 title="Delete Brand"
                 description="Are you sure you want to delete this brand?"
                 onConfirm={() => handleDelete(record.id)}
-                okText="Yes"
-                cancelText="No"
+                okText="Delete"
+                cancelText="Cancel"
                 okType="danger"
                 disabled={!!record.deletedAt}
               >
                 <Button
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
+                  className="ds-action-btn delete"
+                  icon={<DeleteOutlined style={{ fontSize: 14 }} />}
                   disabled={!!record.deletedAt}
-                >
-                  Delete
-                </Button>
+                  title="Delete"
+                />
               </Popconfirm>
             </>
           )}
-        </Space>
+        </div>
       ),
     },
   ];
 
   return (
     <div style={{ padding: "24px" }}>
-      <div
-        style={{
-          marginBottom: "24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Title level={2} style={{ margin: 0 }}>
-          Brands Management
-        </Title>
+      <div className="ds-page-header">
+        <h1 className="ds-page-title">Brands</h1>
         {isAdmin && (
           <Button
-            type="primary"
             icon={<PlusOutlined />}
-            onClick={handleAddBrand}
+            className="ds-btn-primary"
+            onClick={() => { form.resetFields(); setIsModalVisible(true); }}
           >
             Add Brand
           </Button>
         )}
       </div>
 
-      <Card>
+      <div className="ds-table-wrapper">
         <Table
           columns={columns}
           dataSource={brands}
           rowKey="id"
           loading={loading}
-          scroll={{ x: 1400 }}
+          scroll={{ x: 800 }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} brands`,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} brands`,
+          }}
+          locale={{
+            emptyText: (
+              <div className="ds-empty">
+                <div className="ds-empty-icon">🏷️</div>
+                <div className="ds-empty-text">No brands found</div>
+              </div>
+            ),
           }}
         />
-      </Card>
+      </div>
 
       {/* Add Brand Modal */}
       {isAdmin && (
@@ -339,40 +260,19 @@ const Brands = () => {
           title="Add New Brand"
           open={isModalVisible}
           onOk={handleModalOk}
-          onCancel={handleModalCancel}
+          onCancel={() => { setIsModalVisible(false); form.resetFields(); }}
           okText="Create"
           cancelText="Cancel"
+          okButtonProps={{ style: { background: "#0F172A", borderColor: "#0F172A" } }}
         >
           <Form form={form} layout="vertical" name="addBrandForm">
-            <Form.Item
-              name="name"
-              label="Brand Name"
-              rules={[
-                { required: true, message: "Please enter brand name!" },
-                {
-                  min: 2,
-                  message: "Brand name must be at least 2 characters!",
-                },
-              ]}
-            >
+            <Form.Item name="name" label="Brand Name" rules={[{ required: true }]}>
               <Input placeholder="Enter brand name" />
             </Form.Item>
-            <Form.Item
-              name="description"
-              label="Description"
-              rules={[
-                {
-                  max: 500,
-                  message: "Description must be less than 500 characters!",
-                },
-              ]}
-            >
+            <Form.Item name="description" label="Description">
               <Input.TextArea placeholder="Enter brand description" rows={3} />
             </Form.Item>
-            <Form.Item
-              name="logoUrl"
-              label="Logo"
-            >
+            <Form.Item name="logoUrl" label="Logo">
               <AntdImageUpload />
             </Form.Item>
           </Form>
@@ -385,40 +285,19 @@ const Brands = () => {
           title="Edit Brand"
           open={isEditModalVisible}
           onOk={handleEditModalOk}
-          onCancel={handleEditModalCancel}
+          onCancel={() => { setIsEditModalVisible(false); editForm.resetFields(); setEditingBrand(null); }}
           okText="Update"
           cancelText="Cancel"
+          okButtonProps={{ style: { background: "#0F172A", borderColor: "#0F172A" } }}
         >
           <Form form={editForm} layout="vertical" name="editBrandForm">
-            <Form.Item
-              name="name"
-              label="Brand Name"
-              rules={[
-                { required: true, message: "Please enter brand name!" },
-                {
-                  min: 2,
-                  message: "Brand name must be at least 2 characters!",
-                },
-              ]}
-            >
+            <Form.Item name="name" label="Brand Name" rules={[{ required: true }]}>
               <Input placeholder="Enter brand name" />
             </Form.Item>
-            <Form.Item
-              name="description"
-              label="Description"
-              rules={[
-                {
-                  max: 500,
-                  message: "Description must be less than 500 characters!",
-                },
-              ]}
-            >
+            <Form.Item name="description" label="Description">
               <Input.TextArea placeholder="Enter brand description" rows={3} />
             </Form.Item>
-            <Form.Item
-              name="logoUrl"
-              label="Logo"
-            >
+            <Form.Item name="logoUrl" label="Logo">
               <AntdImageUpload />
             </Form.Item>
           </Form>

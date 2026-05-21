@@ -4,7 +4,6 @@ import {
   Input,
   Space,
   Table,
-  Card,
   Typography,
   Tag,
   message,
@@ -503,74 +502,67 @@ const Carts = () => {
 
   return (
     <div style={{ padding: "24px" }}>
-      <div style={{ marginBottom: "24px" }}>
-        <Title level={2} style={{ margin: 0 }}>
-          Carts Management
-        </Title>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginTop: 8,
-          }}
-        >
-          <Text type="secondary">
-            Manage and track all shopping carts in the system
-          </Text>
-        </div>
+      <div className="ds-page-header">
+        <h1 className="ds-page-title">Carts Management</h1>
       </div>
 
-      <Card style={{ marginBottom: "24px" }}>
-        <Space wrap>
-          <Input.Search
-            allowClear
-            placeholder="Search by cart ID or user ID"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onSearch={() => {
-              setPage(1);
-              fetchCarts();
-            }}
-            onPressEnter={() => {
-              setPage(1);
-              fetchCarts();
-            }}
-            style={{ width: 320 }}
-          />
-          <Input
-            placeholder="Filter by User ID"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            style={{ width: 200 }}
-          />
-          <Button
-            onClick={() => {
-              setSearch("");
-              setUserId("");
-              setPage(1);
-              setSorter({});
-            }}
-          >
-            Reset
-          </Button>
-        </Space>
-      </Card>
+      {/* Filters */}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #E2E8F0",
+          borderRadius: 12,
+          padding: "16px 20px",
+          marginBottom: 20,
+          display: "flex",
+          gap: 12,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <Input.Search
+          allowClear
+          placeholder="Search by cart ID or user ID"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onSearch={() => {
+            setPage(1);
+            fetchCarts();
+          }}
+          onPressEnter={() => {
+            setPage(1);
+            fetchCarts();
+          }}
+          style={{ width: 320, borderRadius: 8 }}
+        />
+        <Input
+          placeholder="Filter by User ID"
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
+          style={{ width: 200, borderRadius: 8 }}
+        />
+        <Button
+          onClick={() => {
+            setSearch("");
+            setUserId("");
+            setPage(1);
+            setSorter({});
+          }}
+        >
+          Reset
+        </Button>
+      </div>
 
-      <Card>
+      <div className="ds-table-wrapper">
         <Table<CartWithItems>
           rowKey="id"
           loading={loading}
           columns={columns}
           dataSource={carts}
-          size="middle"
           scroll={{ x: 1400 }}
           expandable={{
             expandedRowRender: (record) => (
-              <div style={{ margin: 0 }}>
-                <Title level={5} style={{ marginBottom: 16 }}>
-                  Cart Items ({record.items?.length || 0})
-                </Title>
+              <div style={{ margin: 0, padding: 0 }}>
                 <Table
                   columns={cartItemColumns(record)}
                   dataSource={record.items || []}
@@ -578,6 +570,7 @@ const Carts = () => {
                   pagination={false}
                   size="small"
                   scroll={{ x: 800 }}
+                  style={{ margin: 0 }}
                 />
               </div>
             ),
@@ -605,8 +598,16 @@ const Carts = () => {
               });
             }
           }}
+          locale={{
+            emptyText: (
+              <div className="ds-empty">
+                <div className="ds-empty-icon">🛒</div>
+                <div className="ds-empty-text">No carts found</div>
+              </div>
+            ),
+          }}
         />
-      </Card>
+      </div>
 
       {/* Add Item Modal */}
       {isAdmin && (
