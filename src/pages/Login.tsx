@@ -107,13 +107,13 @@ export default function LoginPage() {
     return null;
   }
 
-  const [tab, setTab]         = useState<TabKey>("mobile");
-  const [mobile, setMobile]   = useState("");
+  const [tab, setTab] = useState<TabKey>("mobile");
+  const [mobile, setMobile] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw]   = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors]   = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState("");
 
   // ── Validation ──────────────────────────────────────────────────────────────
@@ -205,7 +205,7 @@ export default function LoginPage() {
           {/* Heading */}
           <div style={{ marginBottom: 36 }}>
             <h1 style={{ fontSize: 26, fontWeight: 700, color: "#0F172A", margin: "0 0 6px" }}>
-              123 Online Admin
+              Beeyo Admin
             </h1>
             <p style={{ fontSize: 15, color: "#6B7280", margin: 0 }}>
               Sign in to your admin account

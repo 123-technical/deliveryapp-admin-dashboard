@@ -125,7 +125,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             >
               🛒
             </span>
-            {!collapsed && <span>123 Online Admin</span>}
+            {!collapsed && <span>Beeyo Admin</span>}
           </div>
 
           {/* Nav */}
