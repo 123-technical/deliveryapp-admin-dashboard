@@ -57,15 +57,6 @@ const ACCENT = {
 
 const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const getStatusColor = (status: string) => {
-  const map: Record<string, string> = {
-    PENDING: "orange", CONFIRMED: "blue", PROCESSING: "cyan",
-    OUT_FOR_DELIVERY: "orange", SHIPPED: "purple",
-    DELIVERED: "green", CANCELLED: "red", REFUNDED: "volcano",
-  };
-  return map[status] || "default";
-};
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function getWeekRange() {
   const now = dayjs();

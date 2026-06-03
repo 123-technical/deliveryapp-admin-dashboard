@@ -5,7 +5,6 @@ import {
   Col,
   Typography,
   Avatar,
-  Descriptions,
   Tag,
   Divider,
   Space,

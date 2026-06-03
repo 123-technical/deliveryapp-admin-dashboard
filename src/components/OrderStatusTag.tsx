@@ -5,6 +5,7 @@ const colorMap: Record<OrderStatus, string> = {
   PENDING: "orange",
   CONFIRMED: "blue",
   PROCESSING: "cyan",
+  OUT_FOR_DELIVERY: "orange",
   SHIPPED: "purple",
   DELIVERED: "green",
   CANCELLED: "red",

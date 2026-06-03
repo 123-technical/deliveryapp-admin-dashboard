@@ -11,7 +11,6 @@ const Profile = lazy(() => import("./pages/Profile.tsx"));
 const Overview = lazy(() => import("./pages/Overview.tsx"));
 const Customers = lazy(() => import("./pages/Customers.tsx"));
 const Riders = lazy(() => import("./pages/Riders.tsx"));
-const Staffs = lazy(() => import("./pages/Users.tsx"));
 const Orders = lazy(() => import("./pages/Orders.tsx"));
 
 const Products = lazy(() => import("./pages/Products.tsx"));

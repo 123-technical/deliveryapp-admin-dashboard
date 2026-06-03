@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import type { ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
 import type { AuthState, LoginCredentials, SignupDto } from "../types/auth";
 import { authService, registerUnauthorizedHandler } from "../services/auth";
 

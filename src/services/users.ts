@@ -167,24 +167,24 @@ export function listAllPermissions(): string[] {
 }
 
 // Stub for bulk operations if needed, though backend might not support them yet
-export async function bulkUpdateStatus(ids: string[], status: string): Promise<number> {
+export async function bulkUpdateStatus(_ids: string[], _status: string): Promise<number> {
   console.warn('Bulk update not implemented on backend');
   return 0;
 }
 
-export async function bulkAssignRole(ids: string[], role: UserRole): Promise<number> {
+export async function bulkAssignRole(_ids: string[], _role: UserRole): Promise<number> {
   console.warn('Bulk assign role not implemented on backend');
   return 0;
 }
 
-export async function bulkAssignDepartment(ids: string[], department: string): Promise<number> {
+export async function bulkAssignDepartment(_ids: string[], _department: string): Promise<number> {
   return 0;
 }
 
-export async function bulkDelete(ids: string[]): Promise<number> {
+export async function bulkDelete(_ids: string[]): Promise<number> {
   return 0;
 }
 
-export function exportUsersToCsv(ids: string[]): string {
+export function exportUsersToCsv(_ids: string[]): string {
   return '';
 }

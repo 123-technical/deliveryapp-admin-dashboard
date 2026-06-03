@@ -32,7 +32,6 @@ import {
   StarOutlined,
   DollarOutlined,
   CheckCircleOutlined,
-  ClockCircleOutlined,
   StopOutlined,
   MinusCircleOutlined,
 } from "@ant-design/icons";
@@ -50,43 +49,9 @@ import {
   listAllLicenseTypes,
 } from "../services/riders";
 import StatusBadge from "../components/StatusBadge";
-import CopyableId from "../components/CopyableId";
 
 type SortOrder = "ascend" | "descend" | undefined;
 
-const getStatusColor = (status: RiderStatus) => {
-  switch (status) {
-    case "active":
-      return "green";
-    case "inactive":
-      return "default";
-    case "suspended":
-      return "red";
-    case "offline":
-      return "orange";
-    case "busy":
-      return "blue";
-    default:
-      return "default";
-  }
-};
-
-const getStatusIcon = (status: RiderStatus) => {
-  switch (status) {
-    case "active":
-      return <CheckCircleOutlined />;
-    case "inactive":
-      return <MinusCircleOutlined />;
-    case "suspended":
-      return <StopOutlined />;
-    case "offline":
-      return <ClockCircleOutlined />;
-    case "busy":
-      return <ClockCircleOutlined />;
-    default:
-      return null;
-  }
-};
 
 const getVehicleIcon = () => {
   return <CarOutlined />;

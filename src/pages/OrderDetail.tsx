@@ -10,18 +10,14 @@ import {
   Typography,
   Table,
   Tag,
-  Modal,
-  Form,
-  Select,
   Popconfirm,
   Row,
   Col,
   Dropdown,
-  MenuProps,
+  type MenuProps,
 } from "antd";
 import {
   ArrowLeftOutlined,
-  EditOutlined,
   DeleteOutlined,
   CopyOutlined,
   DownOutlined,
@@ -29,10 +25,9 @@ import {
 import dayjs from "dayjs";
 import { orderService } from "../services/orders";
 import { useAuth } from "../contexts/AuthContext";
-import type { Order, UpdateOrderDto } from "../types/order";
+import type { Order } from "../types/order";
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {

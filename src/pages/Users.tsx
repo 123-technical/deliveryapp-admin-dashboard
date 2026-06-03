@@ -17,6 +17,8 @@ import {
   Avatar,
   Drawer,
   Descriptions,
+  Typography,
+  Tag,
 } from "antd";
 import {
   PlusOutlined,
@@ -30,14 +32,12 @@ import {
   UserSwitchOutlined,
 } from "@ant-design/icons";
 import type { User, UserRole } from "../types/user";
-import StatusBadge from "../components/StatusBadge";
-import CopyableId from "../components/CopyableId";
+
 import {
   fetchUsers,
   updateUser,
   createUser,
   deleteUser,
-  bulkDelete,
   exportUsersToCsv,
   listAllRoles,
   getUserById,
@@ -217,32 +217,6 @@ export default function Users() {
       setTotal(total - 1);
     } catch {
       message.error("Failed to delete User");
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedIds.length === 0) {
-      message.warning("Please select users first");
-      return;
-    }
-    try {
-      const count = await bulkDelete(selectedIds);
-      message.success(`${count} users deleted successfully`);
-      setSelectedIds([]);
-      setTotal(total - count);
-      // Refresh data
-      const res = await fetchUsers({
-        page,
-        pageSize,
-        search,
-        role: roleFilter,
-        sortBy,
-        sortOrder,
-      });
-      setData(res.data);
-      setTotal(res.metadata?.total);
-    } catch {
-      message.error("Failed to delete users");
     }
   };
 

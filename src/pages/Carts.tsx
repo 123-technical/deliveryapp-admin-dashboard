@@ -30,7 +30,7 @@ import type {
   UpdateCartItemDto,
 } from "../types/cart";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const Carts = () => {
   const [carts, setCarts] = useState<CartWithItems[]>([]);

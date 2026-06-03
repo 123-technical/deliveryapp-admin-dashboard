@@ -25,14 +25,9 @@ import type { Category, SubCategoriesMap } from "../types/category";
 import AntdImageUpload from "../components/AntdImageUpload";
 import StatusBadge from "../components/StatusBadge";
 import TableImage from "../components/TableImage";
-import CopyableId from "../components/CopyableId";
 import DrawerForm from "../components/DrawerForm";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-function formatDate(d: string) {
-  return new Date(d).toLocaleString();
-}
 
 function truncate(s: string | null | undefined, n: number) {
   if (!s) return "-";
@@ -391,7 +386,7 @@ const Categories = () => {
               <Button
                 size="small"
                 icon={<PlusOutlined />}
-                onClick={() => openAddModal(parentId)}
+                onClick={() => openAddDrawer(parentId)}
                 style={{ borderStyle: "dashed" }}
               >
                 Add Subcategory
