@@ -39,6 +39,7 @@ import { productService } from "../services/products";
 import { categoryService } from "../services/categories";
 import { fetchCustomers } from "../services/customers";
 import type { Order } from "../types/order";
+import type { Category } from "../types/category";
 import StatusBadge from "../components/StatusBadge";
 import CopyableId from "../components/CopyableId";
 
@@ -296,7 +297,10 @@ export default function Overview() {
   const [lastUpdated, setLastUpdated] = useState(dayjs());
 
   // ── Data Fetching ──────────────────────────────────────────────────────────
-  const fetchStatCards = useCallback(async () => {
+  // Categories are fetched once per load and shared between the stat cards
+  // and the "Top Category" quick stat, instead of each section fetching its
+  // own copy.
+  const fetchStatCards = useCallback(async (categories: Category[] | null) => {
     setLoadingStats(true);
     const errs: typeof errorStats = {};
 
@@ -337,12 +341,9 @@ export default function Overview() {
       errs.products = true;
     }
 
-    // 3. Categories
-    const categoriesResult = await Promise.allSettled([
-      categoryService.getEnabledCategories(),
-    ]);
-    if (categoriesResult[0].status === "fulfilled") {
-      setTotalCategories(categoriesResult[0].value.length);
+    // 3. Categories (already fetched by loadDashboard)
+    if (categories) {
+      setTotalCategories(categories.length);
     } else {
       errs.categories = true;
     }
@@ -374,16 +375,18 @@ export default function Overview() {
     }
   }, []);
 
-  const fetchQuickStats = useCallback(async () => {
+  const fetchQuickStats = useCallback(async (categories: Category[] | null) => {
     setLoadingQuick(true);
 
-    const [oos, riders] = await Promise.allSettled([
+    const [oos, riders, categoryCounts] = await Promise.allSettled([
       productService.getProducts({ page: 1, pageSize: 1, isAvailable: false }),
       // Riders uses mock data service
       (async () => {
         const { fetchRiders } = await import("../services/riders");
         return fetchRiders({ page: 1, pageSize: 500 });
       })(),
+      // Single aggregate query instead of one products request per category
+      productService.getCategoryCounts(),
     ]);
 
     if (oos.status === "fulfilled") setOutOfStock(oos.value.total || 0);
@@ -394,44 +397,38 @@ export default function Overview() {
       setActiveRiders(active);
     }
 
-    // Top category: use categories list and rough product count guess
-    try {
-      const cats = await categoryService.getEnabledCategories();
-      if (cats.length > 0) {
-        // Fetch products per category (first 3 categories to avoid N+1 overload)
-        const topCats = cats.slice(0, 5);
-        const results = await Promise.allSettled(
-          topCats.map((c) =>
-            productService.getProducts({ page: 1, pageSize: 1, categoryId: c.id })
-          )
-        );
-        let best = { name: cats[0].name, count: 0 };
-        results.forEach((r, i) => {
-          if (r.status === "fulfilled") {
-            const count = r.value.total || 0;
-            if (count > best.count) best = { name: topCats[i].name, count };
-          }
-        });
-        setTopCategory(best);
+    if (categories && categories.length > 0 && categoryCounts.status === "fulfilled") {
+      const nameById = new Map(categories.map((c) => [c.id, c.name]));
+      let best = { name: categories[0].name, count: 0 };
+      for (const { categoryId, count } of categoryCounts.value) {
+        if (count > best.count) {
+          best = { name: nameById.get(categoryId) || "Unknown", count };
+        }
       }
-    } catch {
-      // silent
+      setTopCategory(best);
     }
 
     setLoadingQuick(false);
   }, []);
 
-  const refresh = useCallback(async () => {
-    setLastUpdated(dayjs());
-    await Promise.allSettled([fetchStatCards(), fetchRecentOrders(), fetchQuickStats()]);
-    message.success("Dashboard refreshed");
+  const loadDashboard = useCallback(async () => {
+    const categories = await categoryService.getEnabledCategories().catch(() => null);
+    await Promise.allSettled([
+      fetchStatCards(categories),
+      fetchRecentOrders(),
+      fetchQuickStats(categories),
+    ]);
   }, [fetchStatCards, fetchRecentOrders, fetchQuickStats]);
 
+  const refresh = useCallback(async () => {
+    setLastUpdated(dayjs());
+    await loadDashboard();
+    message.success("Dashboard refreshed");
+  }, [loadDashboard]);
+
   useEffect(() => {
-    fetchStatCards();
-    fetchRecentOrders();
-    fetchQuickStats();
-  }, [fetchStatCards, fetchRecentOrders, fetchQuickStats]);
+    loadDashboard();
+  }, [loadDashboard]);
 
   // ── Trend computation ──────────────────────────────────────────────────────
   const todayTrend =

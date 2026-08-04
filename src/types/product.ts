@@ -40,6 +40,11 @@ export type ProductsResponse = {
   total: number
 }
 
+export type CategoryProductCount = {
+  categoryId: string
+  count: number
+}
+
 export type CreateProductDto = {
   name: string
   slug: string

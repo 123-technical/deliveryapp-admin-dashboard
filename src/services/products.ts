@@ -1,5 +1,5 @@
 import { authService } from "./auth";
-import type { Product, ProductsQuery, ProductsResponse, CreateProductDto, UpdateProductDto } from '../types/product';
+import type { Product, ProductsQuery, ProductsResponse, CreateProductDto, UpdateProductDto, CategoryProductCount } from '../types/product';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -163,6 +163,30 @@ class ProductService {
             return data;
         } catch (error) {
             console.error('Update product error:', error);
+            throw error;
+        }
+    }
+
+    async getCategoryCounts(): Promise<CategoryProductCount[]> {
+        try {
+            const token = authService.getToken();
+            const response = await fetch(`${this.baseURL}/api/v1/products/stats/category-counts`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch category counts');
+            }
+
+            const responseData = await response.json();
+            const data = responseData.data || responseData;
+            return Array.isArray(data) ? data : [];
+        } catch (error) {
+            console.error('Get category counts error:', error);
             throw error;
         }
     }
