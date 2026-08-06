@@ -45,20 +45,20 @@ class ProductService {
             
             const responseData = await response.json();
             console.log('Products response:', responseData);
-            
-            // Extract the actual data from the wrapped response
-            const data = responseData.data || responseData;
-            console.log('Products data:', data);
-            
-            // Handle the case where backend returns { data: [], total: 0 }
-            if (data && typeof data === 'object' && 'data' in data && 'total' in data) {
-                return data;
+
+            // API returns: { success: true, data: [...], metadata: { total, page, limit } }
+            if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+                const list = Array.isArray(responseData.data) ? responseData.data : [];
+                return {
+                    data: list,
+                    total: responseData.metadata?.total ?? list.length,
+                };
             }
-            
+
             // If it's just an array, wrap it in the expected format
             return {
-                data: Array.isArray(data) ? data : [],
-                total: Array.isArray(data) ? data.length : 0
+                data: Array.isArray(responseData) ? responseData : [],
+                total: Array.isArray(responseData) ? responseData.length : 0
             };
         } catch (error) {
             console.error('Get products error:', error);

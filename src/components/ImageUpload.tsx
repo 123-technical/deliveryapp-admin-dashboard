@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { uploadService } from "../services/upload";
 
 interface ImageUploadProps {
@@ -34,7 +34,13 @@ export default function ImageUpload({
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset the broken-image fallback whenever the image we're pointed at changes
+  useEffect(() => {
+    setLoadError(false);
+  }, [previewUrl, value]);
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -134,7 +140,7 @@ export default function ImageUpload({
   };
 
   const displayUrl = previewUrl || value;
-  const hasImage = !!displayUrl;
+  const hasImage = !!displayUrl && !loadError;
 
   return (
     <div style={{ width: "100%" }}>
@@ -210,9 +216,7 @@ export default function ImageUpload({
                 borderRadius: 10,
                 padding: 8,
               }}
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
+              onError={() => setLoadError(true)}
             />
 
             {/* Clear button */}
@@ -271,7 +275,7 @@ export default function ImageUpload({
               📷
             </div>
             <div style={{ fontSize: 14, color: "#6b7280", fontWeight: 500 }}>
-              Click to upload or drag & drop
+              {loadError ? "Existing image failed to load — click to replace" : "Click to upload or drag & drop"}
             </div>
             <div
               style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}

@@ -16,6 +16,47 @@ class UploadService {
     this.baseURL = API_BASE_URL;
   }
 
+  private static readonly EXT_TO_MIME: Record<string, string> = {
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+    gif: "image/gif",
+    svg: "image/svg+xml",
+    avif: "image/avif",
+  };
+
+  /**
+   * Builds a safe object filename instead of trusting `File.name` verbatim.
+   * `File.name` isn't always a clean local filename — e.g. dragging an image
+   * in from a browser tab (rather than picking it from disk) can make Chrome
+   * synthesize a File whose `.name` is derived from the source URL. Sending
+   * that raw string to the backend as the upload key corrupts the resulting
+   * object path/URL, so we only ever keep the extension from it.
+   */
+  private safeFileName(file: File): string {
+    const extFromName = /\.([a-zA-Z0-9]{1,5})$/.exec(file.name)?.[1];
+    const extFromType = file.type.split("/")[1];
+    const ext = (extFromName || extFromType || "jpg").toLowerCase();
+    const random = Math.random().toString(36).slice(2, 8);
+    return `${Date.now()}-${random}.${ext}`;
+  }
+
+  /**
+   * Resolves a real image MIME type for the upload's Content-Type header.
+   * Some Files (drag-and-drop from a webpage, odd downloads) report an empty
+   * `.type`. Uploading with a blank/incorrect Content-Type makes Oracle
+   * Object Storage serve the object back without a valid image content type,
+   * which Chrome's Opaque Response Blocking then refuses to render — the
+   * upload "succeeds" but the image can never load. Fall back to inferring
+   * the type from the extension so the stored object always has one.
+   */
+  private resolveContentType(file: File): string {
+    if (file.type) return file.type;
+    const ext = /\.([a-zA-Z0-9]{1,5})$/.exec(file.name)?.[1]?.toLowerCase();
+    return (ext && UploadService.EXT_TO_MIME[ext]) || "image/jpeg";
+  }
+
   /**
    * Step 1: Request a presigned upload URL from the backend.
    */
@@ -57,7 +98,7 @@ class UploadService {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("PUT", uploadUrl, true);
-      xhr.setRequestHeader("Content-Type", file.type);
+      xhr.setRequestHeader("Content-Type", this.resolveContentType(file));
 
       if (onProgress) {
         xhr.upload.onprogress = (event) => {
@@ -82,41 +123,18 @@ class UploadService {
   }
 
   /**
-   * Derives the permanent public URL from the presigned upload URL.
-   * Presigned URL format:
-   *   https://objectstorage.<region>.oraclecloud.com/p/<par-token>/n/<namespace>/b/<bucket>/o/<objectName>
-   * Public URL format:
-   *   https://objectstorage.<region>.oraclecloud.com/n/<namespace>/b/<bucket>/o/<objectName>
-   */
-  derivePublicUrl(uploadUrl: string): string {
-    // Remove the /p/<par-token> segment from the URL
-    const url = new URL(uploadUrl);
-    const pathParts = url.pathname.split("/");
-
-    // Find the index of 'p' in the path and remove it along with the token
-    const pIndex = pathParts.indexOf("p");
-    if (pIndex !== -1 && pIndex + 1 < pathParts.length) {
-      // Remove /p/<token> (2 segments)
-      pathParts.splice(pIndex, 2);
-    }
-
-    url.pathname = pathParts.join("/");
-    // Remove query params (the presigned signature)
-    url.search = "";
-    return url.toString();
-  }
-
-  /**
    * Full upload flow: get presigned URL → upload file → return objectName.
-   * We return the objectName (e.g. "uploads/1778656396271-photo.jpg")
-   * because the backend constructs the full URL from it when serving data.
+   * We return the bare objectName (e.g. "uploads/1778656396271-photo.jpg"),
+   * never a full URL — the backend prepends its own base path to whatever
+   * string it's given, so passing an already-full URL here produces a
+   * doubled/broken URL when the backend wraps it a second time.
    */
   async uploadFile(
     file: File,
     onProgress?: (percent: number) => void
   ): Promise<string> {
     // Step 1: Get presigned URL
-    const { uploadUrl, objectName } = await this.getPresignedUrl(file.name);
+    const { uploadUrl, objectName } = await this.getPresignedUrl(this.safeFileName(file));
 
     // Step 2: Upload file to presigned URL
     await this.uploadFileToPresignedUrl(uploadUrl, file, onProgress);
