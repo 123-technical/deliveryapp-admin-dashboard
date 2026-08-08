@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"c:\\\\Users\\\\Sahal\\\\deliveryapp-admin-dashboard\" && rm pnpm-lock.yaml && git status --porcelain)",
+      "Bash(git checkout *)",
+      "Bash(cd \"c:\\\\Users\\\\Sahal\\\\deliveryapp-admin-dashboard\" && mkdir -p .vscode)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Sahal\\deliveryapp-admin-dashboard"
+    ]
+  }
+}
