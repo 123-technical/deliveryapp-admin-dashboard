@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AdminLayout from "./layouts/AdminLayout.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
+import RoleProtectedRoute from "./components/RoleProtectedRoute.tsx";
 import LoginPage from "./pages/Login.tsx";
 import Users from "./pages/Users.tsx";
 import { useAuth } from "./contexts/AuthContext.tsx";
@@ -26,6 +27,7 @@ const Brands = lazy(() => import("./pages/Brands.tsx"));
 const BrandDetail = lazy(() => import("./pages/BrandDetail.tsx"));
 const Carts = lazy(() => import("./pages/Carts.tsx"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail.tsx"));
+const DeliveryZones = lazy(() => import("./pages/DeliveryZones.tsx"));
 
 // GuestRoute: redirect to /overview if already authenticated
 function GuestRoute({ children }: { children: React.ReactNode }) {
@@ -77,6 +79,14 @@ function App() {
                   <Route path="/brands" element={<Brands />} />
                   <Route path="/brand/:id" element={<BrandDetail />} />
                   <Route path="/carts" element={<Carts />} />
+                  <Route
+                    path="/delivery-zones"
+                    element={
+                      <RoleProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                        <DeliveryZones />
+                      </RoleProtectedRoute>
+                    }
+                  />
                   <Route path="/orders/:id" element={<OrderDetail />} />
                   <Route path="/admin/orders/:id" element={<Navigate to="/orders/:id" replace />} />
                   <Route

@@ -3,7 +3,10 @@
     "allow": [
       "Bash(cd \"c:\\\\Users\\\\Sahal\\\\deliveryapp-admin-dashboard\" && rm pnpm-lock.yaml && git status --porcelain)",
       "Bash(git checkout *)",
-      "Bash(cd \"c:\\\\Users\\\\Sahal\\\\deliveryapp-admin-dashboard\" && mkdir -p .vscode)"
+      "Bash(cd \"c:\\\\Users\\\\Sahal\\\\deliveryapp-admin-dashboard\" && mkdir -p .vscode)",
+      "Bash(powershell -Command \"Get-ChildItem -Force -Path 'c:\\\\Users\\\\Sahal\\\\deliveryapp-admin-dashboard' -Filter '.env*'\")",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\\\\n\" -X POST http://127.0.0.1:3000/api/v1/auth/signin-with-password -H \"Content-Type: application/json\" -d '{\"username\":\"qa_superadmin\",\"password\":\"password123\"}')",
+      "Bash(curl -s -o /dev/null -w \"backend:%{http_code}\\\\n\" --max-time 5 http://127.0.0.1:3000/api/v1/products)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Sahal\\deliveryapp-admin-dashboard"

@@ -18,6 +18,7 @@ import {
   ShoppingOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  EnvironmentOutlined,
 } from "@ant-design/icons";
 import { Button, Avatar, Space, Dropdown, Layout, type MenuProps } from "antd";
 import { useAuth } from "../contexts/AuthContext";
@@ -38,6 +39,7 @@ const NAV_ITEMS = [
   { key: "/customers", icon: <TeamOutlined />, label: "Customers" },
   { key: "/riders", icon: <UserSwitchOutlined />, label: "Riders" },
   { key: "/users", icon: <UserOutlined />, label: "Users" },
+  { key: "/delivery-zones", icon: <EnvironmentOutlined />, label: "Delivery Zones", superAdminOnly: true },
   { key: "/reports", icon: <BarChartOutlined />, label: "Reports" },
   { key: "/notifications", icon: <BellOutlined />, label: "Notifications" },
   { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
@@ -130,7 +132,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Nav */}
           <nav style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "8px 0" }}>
-            {NAV_ITEMS.map((item) => {
+            {NAV_ITEMS.filter((item) => !item.superAdminOnly || user?.role === "SUPER_ADMIN").map((item) => {
               const isActive = location.pathname === item.key || location.pathname.startsWith(item.key + "/");
               return (
                 <div
