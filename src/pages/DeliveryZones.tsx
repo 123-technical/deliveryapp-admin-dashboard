@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Button,
   Table,
@@ -50,6 +51,7 @@ const DeliveryZones = () => {
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
   const [form] = Form.useForm();
 
   // ── Load warehouses, auto-select the first one ──
@@ -99,17 +101,23 @@ const DeliveryZones = () => {
   };
 
   // ── Add / Edit / Cancel ──
+  // Adding: drop straight into draw mode with no form yet — the map should be
+  // the only thing on screen until a shape actually exists. The form drawer
+  // slides in on its own once drawing finishes (see the effect below).
   const openAddDrawer = () => {
     form.resetFields();
     form.setFieldsValue({ isActive: true, priority: 0 });
     setEditingZone(null);
+    setHasDraft(false);
     setMapMode("draw");
-    setDrawerOpen(true);
   };
 
+  // Editing: the shape already exists, so there's nothing to wait for —
+  // show the form right away.
   const openEditDrawer = (zone: DeliveryZone) => {
     form.setFieldsValue({ name: zone.name, isActive: zone.isActive, priority: zone.priority });
     setEditingZone(zone);
+    setHasDraft(true);
     setMapMode("edit");
     setDrawerOpen(true);
   };
@@ -118,8 +126,15 @@ const DeliveryZones = () => {
     setDrawerOpen(false);
     setMapMode("view");
     setEditingZone(null);
+    setHasDraft(false);
     form.resetFields();
   };
+
+  // Reveal the form the moment a fresh shape is finished (add flow only —
+  // edit flow opens the drawer immediately since its shape already exists).
+  useEffect(() => {
+    if (mapMode === "draw" && hasDraft) setDrawerOpen(true);
+  }, [mapMode, hasDraft]);
 
   const handleSave = async () => {
     if (!selectedWarehouseId) return;
@@ -237,15 +252,28 @@ const DeliveryZones = () => {
       <div className="ds-page-header">
         <h1 className="ds-page-title">Delivery Zones</h1>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <Select
-            placeholder="Select warehouse"
-            style={{ width: 240 }}
-            loading={loadingWarehouses}
-            value={selectedWarehouseId}
-            onChange={setSelectedWarehouseId}
-            options={warehouses.map((w) => ({ label: w.name, value: w.id }))}
-            disabled={isDrafting}
-          />
+          {/* With a single warehouse there's nothing to pick — show it as a label
+              instead of a dropdown. The selector reappears automatically once a
+              second warehouse exists. */}
+          {loadingWarehouses || warehouses.length > 1 ? (
+            <Select
+              placeholder="Select warehouse"
+              style={{ width: 240 }}
+              loading={loadingWarehouses}
+              value={selectedWarehouseId}
+              onChange={setSelectedWarehouseId}
+              options={warehouses.map((w) => ({ label: w.name, value: w.id }))}
+              disabled={isDrafting}
+            />
+          ) : warehouses.length === 1 ? (
+            <span style={{ fontSize: 14, fontWeight: 500, color: "#0F172A" }}>
+              {warehouses[0].name}
+            </span>
+          ) : (
+            <span style={{ fontSize: 13, color: "#64748B" }}>
+              No warehouses yet — <Link to="/warehouses">add one first</Link>
+            </span>
+          )}
           {isDrafting ? (
             <Button icon={<CloseOutlined />} onClick={closeDrawer}>
               Cancel Drawing
@@ -263,7 +291,28 @@ const DeliveryZones = () => {
         </div>
       </div>
 
-      <div style={{ height: 520, marginBottom: 24 }}>
+      <div style={{ height: 520, marginBottom: 24, position: "relative" }}>
+        {mapMode === "draw" && !hasDraft && (
+          <div
+            style={{
+              position: "absolute",
+              top: 12,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 10,
+              background: "#0F172A",
+              color: "#fff",
+              padding: "8px 16px",
+              borderRadius: 20,
+              fontSize: 13,
+              fontWeight: 500,
+              pointerEvents: "none",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+            }}
+          >
+            Use the Polygon or Circle tool (top-right) to draw the zone's coverage area
+          </div>
+        )}
         <DeliveryZoneMap
           ref={mapRef}
           zones={zones}
@@ -271,6 +320,7 @@ const DeliveryZones = () => {
           mode={mapMode}
           centerHint={centerHint}
           focusKey={selectedWarehouseId ?? ""}
+          onDraftChange={setHasDraft}
         />
       </div>
 
@@ -298,13 +348,27 @@ const DeliveryZones = () => {
         onClose={closeDrawer}
         onSubmit={handleSave}
         isSubmitting={saving}
+        submitDisabled={!hasDraft}
         submitLabel={editingZone ? "Save Changes" : "Create"}
+        mask={false}
       >
-        <p style={{ fontSize: 13, color: "#64748B", marginTop: 0 }}>
-          {editingZone
+        <div
+          style={{
+            fontSize: 13,
+            marginTop: 0,
+            marginBottom: 16,
+            padding: "10px 12px",
+            borderRadius: 8,
+            background: hasDraft ? "#ECFDF5" : "#EFF6FF",
+            color: hasDraft ? "#047857" : "#1D4ED8",
+          }}
+        >
+          {hasDraft
+            ? "✓ Shape ready — drag its vertices/handle on the map if needed, then save."
+            : editingZone
             ? "Drag the vertices or radius handle on the map to adjust the zone's shape."
-            : "Use the Polygon or Circle tool on the map to draw the zone's coverage area."}
-        </p>
+            : "The map stays interactive — use the Polygon or Circle tool (top-right of the map) to draw the zone's coverage area, then come back here to save."}
+        </div>
         <Form form={form} layout="vertical" name="deliveryZoneForm">
           <Form.Item
             name="name"

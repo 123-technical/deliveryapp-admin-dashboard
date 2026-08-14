@@ -30,6 +30,9 @@ type Props = {
   mode: DeliveryZoneMapMode;
   centerHint: { lat: number; lng: number } | null;
   focusKey: string;
+  /** Fires on discrete shape events (drawn / loaded for edit / cleared) — not on
+   * every drag frame — so the page can enable Save only once a shape exists. */
+  onDraftChange?: (hasDraft: boolean) => void;
 };
 
 const DEFAULT_CENTER: [number, number] = [20.5937, 78.9629]; // India centroid — fallback only
@@ -164,6 +167,7 @@ function MapController({
   mode,
   centerHint,
   focusKey,
+  onDraftChange,
   controllerRef,
 }: Props & { controllerRef: React.MutableRefObject<DeliveryZoneMapHandle | null> }) {
   const map = useMap();
@@ -210,6 +214,7 @@ function MapController({
       return;
     }
     editableGroupRef.current.clearLayers();
+    onDraftChange?.(false);
     const control = new L.Control.Draw({
       position: "topright",
       draw: {
@@ -231,6 +236,7 @@ function MapController({
       map.removeControl(control);
       drawControlRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, map]);
 
   // New shape finished drawing — keep only the latest draft, make it draggable immediately
@@ -240,6 +246,7 @@ function MapController({
       editableGroupRef.current.clearLayers();
       editableGroupRef.current.addLayer(layer);
       enableEditing(layer);
+      onDraftChange?.(true);
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     map.on((L as any).Draw.Event.CREATED, handleCreated);
@@ -247,6 +254,7 @@ function MapController({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.off((L as any).Draw.Event.CREATED, handleCreated);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map]);
 
   // Load an existing zone's shape onto the map for editing
@@ -262,6 +270,7 @@ function MapController({
     });
     editableGroupRef.current.addLayer(layer);
     enableEditing(layer);
+    onDraftChange?.(true);
     const bounds =
       layer instanceof L.Circle
         ? L.latLngBounds([layer.getLatLng()]).pad(0.5)
@@ -284,7 +293,11 @@ function MapController({
 
   // Clear the draft when leaving draw/edit mode (save or cancel)
   useEffect(() => {
-    if (mode === "view") editableGroupRef.current.clearLayers();
+    if (mode === "view") {
+      editableGroupRef.current.clearLayers();
+      onDraftChange?.(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   useImperativeHandle(

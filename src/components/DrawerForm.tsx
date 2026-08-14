@@ -7,9 +7,13 @@ interface DrawerFormProps {
   onClose: () => void;
   onSubmit: () => void;
   isSubmitting?: boolean;
+  submitDisabled?: boolean;
   submitLabel?: string;
   cancelLabel?: string;
   width?: number | string;
+  /** Full-screen dimming/click-to-close backdrop. Turn off when the page behind
+   * the drawer (e.g. a map) needs to stay clickable while the drawer is open. */
+  mask?: boolean;
   children: React.ReactNode;
 }
 
@@ -19,9 +23,11 @@ export default function DrawerForm({
   onClose,
   onSubmit,
   isSubmitting = false,
+  submitDisabled = false,
   submitLabel = "Save",
   cancelLabel = "Cancel",
   width = 560,
+  mask = true,
   children,
 }: DrawerFormProps) {
   // Close on ESC key
@@ -39,9 +45,10 @@ export default function DrawerForm({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  // Lock body scroll when drawer is open
+  // Lock body scroll when drawer is open (only meaningful for a real modal — a
+  // maskless drawer shares the page with content the user is meant to keep using)
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && mask) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -49,17 +56,19 @@ export default function DrawerForm({
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isOpen]);
+  }, [isOpen, mask]);
 
   if (!isOpen) return null;
 
   return (
     <>
       {/* Overlay */}
-      <div
-        className="ds-drawer-overlay"
-        onClick={!isSubmitting ? onClose : undefined}
-      />
+      {mask && (
+        <div
+          className="ds-drawer-overlay"
+          onClick={!isSubmitting ? onClose : undefined}
+        />
+      )}
 
       {/* Drawer Panel */}
       <div 
@@ -95,7 +104,7 @@ export default function DrawerForm({
           <button
             className="ds-btn-primary"
             onClick={onSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || submitDisabled}
             style={{ minWidth: 120 }}
           >
             {isSubmitting ? (

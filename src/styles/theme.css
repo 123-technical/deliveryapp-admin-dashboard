@@ -169,6 +169,15 @@
   background: var(--color-bg) !important;
 }
 
+/* ─── Leaflet stacking fix ──────────────────────────────────────────────────── */
+/* leaflet.css never sets a z-index on .leaflet-container, so it doesn't form its
+   own stacking context — Leaflet's internal panes/controls (z-index up to 1000)
+   then escape and can paint above app UI like the drawer (z-index 50) that visually
+   sits on top of the map. Giving the container its own z-index traps them inside it. */
+.leaflet-container {
+  z-index: 0;
+}
+
 /* ─── Drawer Overlay ────────────────────────────────────────────────────────── */
 .ds-drawer-overlay {
   position: fixed;

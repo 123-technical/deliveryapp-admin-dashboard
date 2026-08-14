@@ -28,6 +28,7 @@ const BrandDetail = lazy(() => import("./pages/BrandDetail.tsx"));
 const Carts = lazy(() => import("./pages/Carts.tsx"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail.tsx"));
 const DeliveryZones = lazy(() => import("./pages/DeliveryZones.tsx"));
+const Warehouses = lazy(() => import("./pages/Warehouses.tsx"));
 
 // GuestRoute: redirect to /overview if already authenticated
 function GuestRoute({ children }: { children: React.ReactNode }) {
@@ -79,6 +80,7 @@ function App() {
                   <Route path="/brands" element={<Brands />} />
                   <Route path="/brand/:id" element={<BrandDetail />} />
                   <Route path="/carts" element={<Carts />} />
+                  <Route path="/warehouses" element={<Warehouses />} />
                   <Route
                     path="/delivery-zones"
                     element={
