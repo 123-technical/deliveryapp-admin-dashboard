@@ -18,7 +18,7 @@ createRoot(document.getElementById("root")!).render(
           algorithm: theme.defaultAlgorithm,
         }}
       >
-        <BrowserRouter>
+        <BrowserRouter basename="/admin">
           <AuthProvider>
             <AntApp>
               <App />
