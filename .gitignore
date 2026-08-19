@@ -26,3 +26,6 @@ dist-ssr
 
 # env file
 .env
+
+# Claude Code local config
+.claude/
