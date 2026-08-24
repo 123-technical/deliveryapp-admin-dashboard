@@ -12,9 +12,13 @@ export async function fetchUsers(params: UsersQuery): Promise<UsersResponse> {
     queryParams.append('limit', params.pageSize.toString());
 
     if (params.search) queryParams.append('search', params.search);
-    if (params.role && params.role !== 'all') {
-      queryParams.append('role', params.role);
-    }
+
+    // Staff page: scope to non-customer roles by default, or a single role when filtered
+    const roleFilter = params.role && params.role !== 'all'
+      ? { role: params.role }
+      : { role: { not: 'CUSTOMER' } };
+    queryParams.append('filters', JSON.stringify(roleFilter));
+
     if (params.sortBy) {
       queryParams.append('sort', JSON.stringify({ [params.sortBy]: params.sortOrder === 'descend' ? 'desc' : 'asc' }));
     }
@@ -155,36 +159,5 @@ export async function getProfile(): Promise<User> {
 }
 
 export function listAllRoles(): UserRole[] {
-  return ['CUSTOMER', 'ADMIN', 'SUPER_ADMIN', 'DELIVERY_PERSONNEL'];
-}
-
-export function listAllDepartments(): string[] {
-  return []; // Backend doesn't seem to have departments in User model yet
-}
-
-export function listAllPermissions(): string[] {
-  return []; // Backend doesn't seem to have separate permissions in User model yet
-}
-
-// Stub for bulk operations if needed, though backend might not support them yet
-export async function bulkUpdateStatus(_ids: string[], _status: string): Promise<number> {
-  console.warn('Bulk update not implemented on backend');
-  return 0;
-}
-
-export async function bulkAssignRole(_ids: string[], _role: UserRole): Promise<number> {
-  console.warn('Bulk assign role not implemented on backend');
-  return 0;
-}
-
-export async function bulkAssignDepartment(_ids: string[], _department: string): Promise<number> {
-  return 0;
-}
-
-export async function bulkDelete(_ids: string[]): Promise<number> {
-  return 0;
-}
-
-export function exportUsersToCsv(_ids: string[]): string {
-  return '';
+  return ['ADMIN', 'SUPER_ADMIN', 'SUPPORT_STAFF', 'DELIVERY_PERSONNEL'];
 }

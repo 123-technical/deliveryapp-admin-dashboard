@@ -58,7 +58,14 @@ function App() {
                   <Route path="/overview" element={<Overview />} />
                   <Route path="/customers" element={<Customers />} />
                   <Route path="/riders" element={<Riders />} />
-                  <Route path="/users" element={<Users />} />
+                  <Route
+                    path="/users"
+                    element={
+                      <RoleProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                        <Users />
+                      </RoleProtectedRoute>
+                    }
+                  />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/admin/orders" element={<Navigate to="/orders" replace />} />

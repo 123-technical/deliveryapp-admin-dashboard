@@ -1,23 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import {
   Button,
   Table,
   Input,
-  Select,
   Space,
   Popconfirm,
   message,
   Modal,
   Form,
-  InputNumber,
-  DatePicker,
   Row,
   Col,
   Card,
   Statistic,
-  Dropdown,
-  type MenuProps,
+  Avatar,
+  Drawer,
+  Descriptions,
+  Typography,
+  Tag,
 } from "antd";
 import {
   PlusOutlined,
@@ -25,37 +25,20 @@ import {
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
-  MoreOutlined,
-  DownloadOutlined,
-  UserOutlined,
   CarOutlined,
-  StarOutlined,
-  DollarOutlined,
-  CheckCircleOutlined,
-  StopOutlined,
-  MinusCircleOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
-import type { Rider, RiderStatus, VehicleType } from "../types/rider";
+import type { Rider } from "../types/rider";
+
 import {
   fetchRiders,
   updateRider,
   createRider,
   deleteRider,
-  bulkUpdateStatus,
-  bulkDelete,
-  exportRidersToCsv,
-  listAllStatuses,
-  listAllVehicleTypes,
-  listAllLicenseTypes,
+  getRiderById,
 } from "../services/riders";
-import StatusBadge from "../components/StatusBadge";
 
 type SortOrder = "ascend" | "descend" | undefined;
-
-
-const getVehicleIcon = () => {
-  return <CarOutlined />;
-};
 
 export default function Riders() {
   const [data, setData] = useState<Rider[]>([]);
@@ -64,46 +47,19 @@ export default function Riders() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<RiderStatus | "all">("all");
-  const [vehicleTypeFilter, setVehicleTypeFilter] = useState<
-    VehicleType | "all"
-  >("all");
   const [sortBy, setSortBy] = useState<keyof Rider | undefined>(undefined);
   const [sortOrder, setSortOrder] = useState<SortOrder>(undefined);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingRider, setEditingRider] = useState<Rider | null>(null);
+  const [viewingRider, setViewingRider] = useState<Rider | null>(null);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [globalStats, setGlobalStats] = useState({
+    total: 0,
+    newThisWeek: 0,
+    newThisMonth: 0,
+  });
   const [form] = Form.useForm();
-
-  const statusOptions = useMemo(() => {
-    const statuses = listAllStatuses();
-    return [
-      { label: "All Statuses", value: "all" },
-      ...statuses.map((status) => ({
-        label: status.charAt(0).toUpperCase() + status.slice(1),
-        value: status,
-      })),
-    ];
-  }, []);
-
-  const vehicleTypeOptions = useMemo(() => {
-    const types = listAllVehicleTypes();
-    return [
-      { label: "All Vehicles", value: "all" },
-      ...types.map((type) => ({
-        label: type.charAt(0).toUpperCase() + type.slice(1),
-        value: type,
-      })),
-    ];
-  }, []);
-
-  const licenseTypeOptions = useMemo(() => {
-    const types = listAllLicenseTypes();
-    return types.map((type) => ({
-      label: `License ${type}`,
-      value: type,
-    }));
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,14 +70,12 @@ export default function Riders() {
           page,
           pageSize,
           search,
-          status: statusFilter,
-          vehicleType: vehicleTypeFilter,
           sortBy,
           sortOrder,
         });
         if (!cancelled) {
           setData(res.data);
-          setTotal(res.total);
+          setTotal(res.metadata?.total);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -130,28 +84,37 @@ export default function Riders() {
     return () => {
       cancelled = true;
     };
-  }, [
-    page,
-    pageSize,
-    search,
-    statusFilter,
-    vehicleTypeFilter,
-    sortBy,
-    sortOrder,
-  ]);
+  }, [page, pageSize, search, sortBy, sortOrder]);
+
+  // Fetch global stats for cards
+  useEffect(() => {
+    const fetchGlobalStats = async () => {
+      try {
+        const weekRes = await fetchRiders({
+          page: 1,
+          pageSize: 1,
+          createdAfter: dayjs().startOf("week").toISOString(),
+        });
+        const monthRes = await fetchRiders({
+          page: 1,
+          pageSize: 1,
+          createdAfter: dayjs().startOf("month").toISOString(),
+        });
+
+        setGlobalStats({
+          total, // Overall total from the main fetch
+          newThisWeek: weekRes.metadata?.total || 0,
+          newThisMonth: monthRes.metadata?.total || 0,
+        });
+      } catch (error) {
+        console.error("Failed to fetch global stats", error);
+      }
+    };
+    fetchGlobalStats();
+  }, [total]);
 
   const handleSearch = (value: string) => {
     setSearch(value);
-    setPage(1);
-  };
-
-  const handleStatusFilter = (value: RiderStatus | "all") => {
-    setStatusFilter(value);
-    setPage(1);
-  };
-
-  const handleVehicleTypeFilter = (value: VehicleType | "all") => {
-    setVehicleTypeFilter(value);
     setPage(1);
   };
 
@@ -180,10 +143,22 @@ export default function Riders() {
     setEditingRider(rider);
     form.setFieldsValue({
       ...rider,
-      licenseExpiry: rider.licenseExpiry ? dayjs(rider.licenseExpiry) : null,
-      joinDate: dayjs(rider.joinDate),
     });
     setModalVisible(true);
+  };
+
+  const handleViewDetails = async (id: string) => {
+    setDetailLoading(true);
+    setDetailVisible(true);
+    try {
+      const rider = await getRiderById(id);
+      setViewingRider(rider);
+    } catch {
+      message.error("Failed to load rider details");
+      setDetailVisible(false);
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -197,80 +172,11 @@ export default function Riders() {
     }
   };
 
-  const handleBulkStatusUpdate = async (status: RiderStatus) => {
-    if (selectedIds.length === 0) {
-      message.warning("Please select riders first");
-      return;
-    }
-    try {
-      const count = await bulkUpdateStatus(selectedIds, status);
-      message.success(`${count} riders updated successfully`);
-      setSelectedIds([]);
-      // Refresh data
-      const res = await fetchRiders({
-        page,
-        pageSize,
-        search,
-        status: statusFilter,
-        vehicleType: vehicleTypeFilter,
-        sortBy,
-        sortOrder,
-      });
-      setData(res.data);
-      setTotal(res.total);
-    } catch {
-      message.error("Failed to update riders");
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedIds.length === 0) {
-      message.warning("Please select riders first");
-      return;
-    }
-    try {
-      const count = await bulkDelete(selectedIds);
-      message.success(`${count} riders deleted successfully`);
-      setSelectedIds([]);
-      setTotal(total - count);
-      // Refresh data
-      const res = await fetchRiders({
-        page,
-        pageSize,
-        search,
-        status: statusFilter,
-        vehicleType: vehicleTypeFilter,
-        sortBy,
-        sortOrder,
-      });
-      setData(res.data);
-      setTotal(res.total);
-    } catch {
-      message.error("Failed to delete riders");
-    }
-  };
-
-  const handleExport = () => {
-    const ids =
-      selectedIds.length > 0 ? selectedIds : data.map((item) => item.id);
-    const csv = exportRidersToCsv(ids);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `riders-${dayjs().format("YYYY-MM-DD")}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    message.success("Export completed");
-  };
-
   const handleModalSubmit = async () => {
     try {
       const values = await form.validateFields();
       const riderData = {
         ...values,
-        licenseExpiry: values.licenseExpiry?.toISOString(),
-        joinDate: values.joinDate?.toISOString(),
       };
 
       if (editingRider) {
@@ -288,149 +194,78 @@ export default function Riders() {
         page,
         pageSize,
         search,
-        status: statusFilter,
-        vehicleType: vehicleTypeFilter,
         sortBy,
         sortOrder,
       });
       setData(res.data);
-      setTotal(res.total);
+      setTotal(res.metadata?.total);
     } catch {
       message.error("Failed to save rider");
     }
   };
 
-  const rowSelection = {
-    selectedRowKeys: selectedIds,
-    onChange: (selectedRowKeys: React.Key[]) => {
-      setSelectedIds(selectedRowKeys as string[]);
-    },
-  };
-
   const columns = [
     {
-      title: "Rider ID",
-      dataIndex: "riderId",
-      key: "riderId",
-      width: 120,
-      sorter: true,
+      title: "Rider",
+      key: "rider",
+      width: 250,
+      render: (_: unknown, record: Rider) => (
+        <Space size="middle">
+          <Avatar
+            style={{
+              backgroundColor: "#1890ff",
+              verticalAlign: "middle",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            }}
+            size="large"
+          >
+            {(record.name || record.username || "?")[0].toUpperCase()}
+          </Avatar>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: "15px", color: "#1a1a1a" }}>
+              {record.name || "Unnamed Rider"}
+            </div>
+            <div style={{ fontSize: "13px", color: "#8c8c8c" }}>
+              @{record.username}
+            </div>
+          </div>
+        </Space>
+      ),
     },
     {
-      title: "Name",
-      key: "name",
+      title: "Contact",
+      key: "contact",
       width: 200,
       render: (_: unknown, record: Rider) => (
         <div>
-          <div style={{ fontWeight: 600 }}>
-            {record.firstName} {record.lastName}
-          </div>
-          <div style={{ fontSize: 12, color: "#666" }}>{record.email}</div>
+          <div style={{ fontSize: "14px", color: "#434343" }}>{record.email || "No Email"}</div>
+          <div style={{ fontSize: "12px", color: "#8c8c8c" }}>{record.mobile}</div>
         </div>
       ),
     },
     {
-      title: "Phone",
-      dataIndex: "phone",
-      key: "phone",
-      width: 130,
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 120,
-      render: (status: RiderStatus) => (
-        <StatusBadge status={status} />
-      ),
-      filters: statusOptions
-        .slice(1)
-        .map((option) => ({ text: option.label, value: option.value })),
-      onFilter: (value: boolean | React.Key, record: Rider) =>
-        record.status === value,
-    },
-    {
-      title: "Vehicle",
-      key: "vehicle",
+      title: "Joined Date",
+      dataIndex: "createdAt",
+      key: "createdAt",
       width: 150,
-      render: (_: unknown, record: Rider) => (
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {getVehicleIcon()}
-            <span>
-              {record.vehicleType.charAt(0).toUpperCase() +
-                record.vehicleType.slice(1)}
-            </span>
-          </div>
-          <div style={{ fontSize: 12, color: "#666" }}>
-            {record.vehicleModel}
-          </div>
-        </div>
+      render: (date: string) => (
+        <span style={{ color: "#595959" }}>
+          {dayjs(date).format("MMM DD, YYYY")}
+        </span>
       ),
-      filters: vehicleTypeOptions
-        .slice(1)
-        .map((option) => ({ text: option.label, value: option.value })),
-      onFilter: (value: boolean | React.Key, record: Rider) =>
-        record.vehicleType === value,
-    },
-    {
-      title: "License",
-      key: "license",
-      width: 120,
-      render: (_: unknown, record: Rider) => (
-        <div>
-          <div>{record.licenseNumber}</div>
-          <div style={{ fontSize: 12, color: "#666" }}>
-            Type {record.licenseType}
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Rating",
-      dataIndex: "rating",
-      key: "rating",
-      width: 100,
-      render: (rating: number) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <StarOutlined style={{ color: "#faad14" }} />
-          <span>{rating.toFixed(1)}</span>
-        </div>
-      ),
-      sorter: true,
-    },
-    {
-      title: "Deliveries",
-      dataIndex: "totalDeliveries",
-      key: "totalDeliveries",
-      width: 100,
-      sorter: true,
-    },
-    {
-      title: "Earnings",
-      dataIndex: "totalEarnings",
-      key: "totalEarnings",
-      width: 120,
-      render: (amount: number) => `$${amount.toFixed(2)}`,
-      sorter: true,
-    },
-    {
-      title: "Join Date",
-      dataIndex: "joinDate",
-      key: "joinDate",
-      width: 120,
-      render: (date: string) => dayjs(date).format("MMM DD, YYYY"),
       sorter: true,
     },
     {
       title: "Actions",
       key: "actions",
       width: 120,
+      fixed: "right" as const,
       render: (_: unknown, record: Rider) => (
         <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
           <Button
             className="ds-action-btn edit"
             icon={<EyeOutlined style={{ fontSize: 14 }} />}
-            onClick={() => message.info("View details functionality coming soon")}
+            onClick={() => handleViewDetails(record.id)}
             title="View Details"
           />
           <Button
@@ -458,97 +293,62 @@ export default function Riders() {
     },
   ];
 
-  const bulkActions: MenuProps["items"] = [
-    {
-      key: "active",
-      label: "Mark as Active",
-      icon: <CheckCircleOutlined />,
-      onClick: () => handleBulkStatusUpdate("active"),
-    },
-    {
-      key: "inactive",
-      label: "Mark as Inactive",
-      icon: <MinusCircleOutlined />,
-      onClick: () => handleBulkStatusUpdate("inactive"),
-    },
-    {
-      key: "suspended",
-      label: "Suspend",
-      icon: <StopOutlined />,
-      onClick: () => handleBulkStatusUpdate("suspended"),
-    },
-    {
-      type: "divider",
-    },
-    {
-      key: "delete",
-      label: "Delete Selected",
-      icon: <DeleteOutlined />,
-      danger: true,
-      onClick: handleBulkDelete,
-    },
-  ];
-
-  const stats = useMemo(() => {
-    const active = data.filter((r) => r.status === "active").length;
-    const totalEarnings = data.reduce((sum, r) => sum + r.totalEarnings, 0);
-    const avgRating =
-      data.length > 0
-        ? data.reduce((sum, r) => sum + r.rating, 0) / data.length
-        : 0;
-    const totalDeliveries = data.reduce((sum, r) => sum + r.totalDeliveries, 0);
-
-    return { active, totalEarnings, avgRating, totalDeliveries };
-  }, [data]);
-
   return (
-    <div style={{ padding: "24px" }}>
-      {/* Page header */}
+    <div style={{ padding: 24, background: "#F8FAFC", minHeight: "100vh" }}>
       <div className="ds-page-header" style={{ marginBottom: 24 }}>
         <h1 className="ds-page-title">Riders</h1>
       </div>
 
-      {/* Stats Cards */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card>
+      {/* Statistics Cards */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} lg={8}>
+          <Card
+            bordered={false}
+            style={{
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              borderRadius: "16px",
+              boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
+            }}
+          >
             <Statistic
-              title="Active Riders"
-              value={stats.active}
-              prefix={<UserOutlined />}
-              valueStyle={{ color: "#3f8600" }}
+              title={<span style={{ color: "rgba(255,255,255,0.8)" }}>Total Riders</span>}
+              value={globalStats.total}
+              prefix={<CarOutlined style={{ color: "#fff" }} />}
+              valueStyle={{ color: "#fff", fontWeight: "bold" }}
             />
           </Card>
         </Col>
-        <Col span={6}>
-          <Card>
+        <Col xs={24} sm={12} lg={8}>
+          <Card
+            bordered={false}
+            style={{
+              background: "linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)",
+              borderRadius: "16px",
+              boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
+            }}
+          >
             <Statistic
-              title="Total Earnings"
-              value={stats.totalEarnings}
-              prefix={<DollarOutlined />}
-              precision={2}
-              valueStyle={{ color: "#cf1322" }}
+              title={<span style={{ color: "rgba(0,0,0,0.6)" }}>New This Week</span>}
+              value={globalStats.newThisWeek}
+              prefix={<CalendarOutlined style={{ color: "rgba(0,0,0,0.7)" }} />}
+              valueStyle={{ color: "rgba(0,0,0,0.8)", fontWeight: "bold" }}
             />
           </Card>
         </Col>
-        <Col span={6}>
-          <Card>
+        <Col xs={24} sm={12} lg={8}>
+          <Card
+            bordered={false}
+            style={{
+              background: "linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)",
+              borderRadius: "16px",
+              boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
+            }}
+          >
             <Statistic
-              title="Average Rating"
-              value={stats.avgRating}
-              prefix={<StarOutlined />}
-              precision={1}
-              valueStyle={{ color: "#faad14" }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Total Deliveries"
-              value={stats.totalDeliveries}
-              prefix={<CarOutlined />}
-              valueStyle={{ color: "#1890ff" }}
+              title={<span style={{ color: "rgba(0,0,0,0.6)" }}>New This Month</span>}
+              value={globalStats.newThisMonth}
+              prefix={<CalendarOutlined style={{ color: "rgba(0,0,0,0.7)" }} />}
+              valueStyle={{ color: "rgba(0,0,0,0.8)", fontWeight: "bold" }}
             />
           </Card>
         </Col>
@@ -576,33 +376,9 @@ export default function Riders() {
             }
             style={{ width: 250 }}
           />
-          <Select
-            placeholder="Status"
-            value={statusFilter}
-            onChange={handleStatusFilter}
-            options={statusOptions}
-            style={{ width: 150 }}
-          />
-          <Select
-            placeholder="Vehicle Type"
-            value={vehicleTypeFilter}
-            onChange={handleVehicleTypeFilter}
-            options={vehicleTypeOptions}
-            style={{ width: 150 }}
-          />
         </Space>
 
         <Space>
-          {selectedIds.length > 0 && (
-            <Dropdown menu={{ items: bulkActions }} trigger={["click"]}>
-              <Button icon={<MoreOutlined />}>
-                Bulk Actions ({selectedIds.length})
-              </Button>
-            </Dropdown>
-          )}
-          <Button icon={<DownloadOutlined />} onClick={handleExport}>
-            Export
-          </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
             Add Rider
           </Button>
@@ -616,7 +392,6 @@ export default function Riders() {
           dataSource={data}
           loading={loading}
           rowKey="id"
-          rowSelection={rowSelection}
           pagination={{
             current: page,
             pageSize,
@@ -631,7 +406,7 @@ export default function Riders() {
             },
           }}
           onChange={handleTableChange}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1000 }}
           locale={{
             emptyText: (
               <div className="ds-empty">
@@ -652,42 +427,38 @@ export default function Riders() {
           setModalVisible(false);
           form.resetFields();
         }}
-        width={800}
+        width={600}
         okText="Save"
         cancelText="Cancel"
       >
         <Form
           form={form}
           layout="vertical"
-          initialValues={{
-            status: "active",
-            vehicleType: "motorcycle",
-            licenseType: "A",
-            rating: 5.0,
-            totalDeliveries: 0,
-            totalEarnings: 0,
-          }}
         >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="firstName"
-                label="First Name"
-                rules={[{ required: true, message: "Please enter first name" }]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="lastName"
-                label="Last Name"
-                rules={[{ required: true, message: "Please enter last name" }]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item
+            name="username"
+            label="Username"
+            rules={[{ required: true, message: "Please enter username" }]}
+          >
+            <Input />
+          </Form.Item>
+
+          {!editingRider && (
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[{ required: true, message: "Please enter password" }]}
+            >
+              <Input.Password />
+            </Form.Item>
+          )}
+
+          <Form.Item
+            name="name"
+            label="Full Name"
+          >
+            <Input />
+          </Form.Item>
 
           <Row gutter={16}>
             <Col span={12}>
@@ -695,7 +466,6 @@ export default function Riders() {
                 name="email"
                 label="Email"
                 rules={[
-                  { required: true, message: "Please enter email" },
                   { type: "email", message: "Please enter valid email" },
                 ]}
               >
@@ -704,157 +474,98 @@ export default function Riders() {
             </Col>
             <Col span={12}>
               <Form.Item
-                name="phone"
-                label="Phone"
+                name="mobile"
+                label="Mobile"
                 rules={[
-                  { required: true, message: "Please enter phone number" },
+                  { required: true, message: "Please enter mobile number" },
                 ]}
               >
                 <Input />
               </Form.Item>
             </Col>
           </Row>
-
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                name="status"
-                label="Status"
-                rules={[{ required: true, message: "Please select status" }]}
-              >
-                <Select options={statusOptions.slice(1)} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="vehicleType"
-                label="Vehicle Type"
-                rules={[
-                  { required: true, message: "Please select vehicle type" },
-                ]}
-              >
-                <Select options={vehicleTypeOptions.slice(1)} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="licenseType"
-                label="License Type"
-                rules={[
-                  { required: true, message: "Please select license type" },
-                ]}
-              >
-                <Select options={licenseTypeOptions} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="licenseNumber"
-                label="License Number"
-                rules={[
-                  { required: true, message: "Please enter license number" },
-                ]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="licenseExpiry"
-                label="License Expiry"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please select license expiry date",
-                  },
-                ]}
-              >
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="vehicleRegistration"
-                label="Vehicle Registration"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please enter vehicle registration",
-                  },
-                ]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="vehicleModel"
-                label="Vehicle Model"
-                rules={[
-                  { required: true, message: "Please enter vehicle model" },
-                ]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                name="vehicleYear"
-                label="Vehicle Year"
-                rules={[
-                  { required: true, message: "Please enter vehicle year" },
-                ]}
-              >
-                <InputNumber min={1990} max={2024} style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="rating"
-                label="Rating"
-                rules={[{ required: true, message: "Please enter rating" }]}
-              >
-                <InputNumber
-                  min={1}
-                  max={5}
-                  step={0.1}
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="joinDate"
-                label="Join Date"
-                rules={[{ required: true, message: "Please select join date" }]}
-              >
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            name="address"
-            label="Address"
-            rules={[{ required: true, message: "Please enter address" }]}
-          >
-            <Input.TextArea rows={2} />
-          </Form.Item>
-
-          <Form.Item name="notes" label="Notes">
-            <Input.TextArea rows={3} />
-          </Form.Item>
         </Form>
       </Modal>
+
+      <Drawer
+        title="Rider Details"
+        placement="right"
+        width={500}
+        onClose={() => setDetailVisible(false)}
+        open={detailVisible}
+        loading={detailLoading}
+      >
+        {viewingRider && (
+          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <Avatar
+                size={100}
+                style={{
+                  backgroundColor: "#1890ff",
+                  fontSize: '40px',
+                  marginBottom: '16px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}
+              >
+                {viewingRider.name?.[0]?.toUpperCase() || viewingRider.username[0].toUpperCase()}
+              </Avatar>
+              <Typography.Title level={3} style={{ margin: 0 }}>{viewingRider.name || 'N/A'}</Typography.Title>
+              <Typography.Text type="secondary">@{viewingRider.username}</Typography.Text>
+            </div>
+
+            <Descriptions
+              title="Personal Information"
+              column={1}
+              bordered
+              size="small"
+              items={[
+                { label: 'Email', children: viewingRider.email || 'N/A' },
+                { label: 'Mobile', children: viewingRider.mobile },
+              ]}
+            />
+
+            <Descriptions
+              title="Account Metadata"
+              column={1}
+              bordered
+              size="small"
+              items={[
+                { label: 'ID', children: viewingRider.id },
+                {
+                  label: 'Created At',
+                  children: dayjs(viewingRider.createdAt).format("MMMM DD, YYYY HH:mm")
+                },
+                {
+                  label: 'Last Updated',
+                  children: dayjs(viewingRider.updatedAt).format("MMMM DD, YYYY HH:mm")
+                },
+                {
+                  label: 'Status',
+                  children: (
+                    <Tag color={viewingRider.deletedAt ? 'error' : 'success'}>
+                      {viewingRider.deletedAt ? 'Deleted' : 'Active'}
+                    </Tag>
+                  )
+                },
+              ]}
+            />
+
+            <div style={{ marginTop: '20px' }}>
+              <Button
+                type="primary"
+                block
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setDetailVisible(false);
+                  handleEdit(viewingRider);
+                }}
+              >
+                Edit Rider
+              </Button>
+            </div>
+          </Space>
+        )}
+      </Drawer>
     </div>
   );
 }

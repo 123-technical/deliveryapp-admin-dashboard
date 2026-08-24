@@ -26,7 +26,6 @@ import {
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
-  DownloadOutlined,
   UserOutlined,
   TeamOutlined,
   UserSwitchOutlined,
@@ -38,7 +37,6 @@ import {
   updateUser,
   createUser,
   deleteUser,
-  exportUsersToCsv,
   listAllRoles,
   getUserById,
 } from "../services/users";
@@ -71,7 +69,6 @@ export default function Users() {
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [sortBy, setSortBy] = useState<keyof User | undefined>(undefined);
   const [sortOrder, setSortOrder] = useState<SortOrder>(undefined);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
@@ -80,7 +77,7 @@ export default function Users() {
   const [globalStats, setGlobalStats] = useState({
     total: 0,
     admins: 0,
-    customers: 0,
+    supportStaff: 0,
     riders: 0
   });
   const [form] = Form.useForm();
@@ -139,13 +136,13 @@ export default function Users() {
         // Fetch total admins (ADMIN + SUPER_ADMIN)
         const adminRes = await fetchUsers({ page: 1, pageSize: 1, role: 'ADMIN' });
         const superRes = await fetchUsers({ page: 1, pageSize: 1, role: 'SUPER_ADMIN' });
-        const customerRes = await fetchUsers({ page: 1, pageSize: 1, role: 'CUSTOMER' });
+        const supportRes = await fetchUsers({ page: 1, pageSize: 1, role: 'SUPPORT_STAFF' });
         const riderRes = await fetchUsers({ page: 1, pageSize: 1, role: 'DELIVERY_PERSONNEL' });
 
         setGlobalStats({
-          total: total, // Overall total from the main fetch
+          total: total, // Overall total from the main fetch (staff only)
           admins: (adminRes.metadata?.total || 0) + (superRes.metadata?.total || 0),
-          customers: customerRes.metadata?.total || 0,
+          supportStaff: supportRes.metadata?.total || 0,
           riders: riderRes.metadata?.total || 0,
         });
       } catch (error) {
@@ -202,7 +199,7 @@ export default function Users() {
       const user = await getUserById(id);
       setViewingUser(user);
     } catch {
-      message.error("Failed to load user details");
+      message.error("Failed to load staff details");
       setDetailVisible(false);
     } finally {
       setDetailLoading(false);
@@ -212,26 +209,12 @@ export default function Users() {
   const handleDelete = async (id: string) => {
     try {
       await deleteUser(id);
-      message.success("User deleted successfully");
+      message.success("Staff deleted successfully");
       setData(data.filter((item) => item.id !== id));
       setTotal(total - 1);
     } catch {
-      message.error("Failed to delete User");
+      message.error("Failed to delete Staff");
     }
-  };
-
-  const handleExport = () => {
-    const ids =
-      selectedIds.length > 0 ? selectedIds : data.map((item) => item.id);
-    const csv = exportUsersToCsv(ids);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `users-${dayjs().format("YYYY-MM-DD")}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    message.success("Export completed");
   };
 
   const handleModalSubmit = async () => {
@@ -243,10 +226,10 @@ export default function Users() {
 
       if (editingUser) {
         await updateUser(editingUser.id, userData);
-        message.success("User updated successfully");
+        message.success("Staff updated successfully");
       } else {
         await createUser(userData);
-        message.success("User created successfully");
+        message.success("Staff created successfully");
       }
 
       setModalVisible(false);
@@ -263,20 +246,13 @@ export default function Users() {
       setData(res.data);
       setTotal(res.metadata?.total);
     } catch {
-      message.error("Failed to save user");
+      message.error("Failed to save staff");
     }
-  };
-
-  const rowSelection = {
-    selectedRowKeys: selectedIds,
-    onChange: (selectedRowKeys: React.Key[]) => {
-      setSelectedIds(selectedRowKeys as string[]);
-    },
   };
 
   const columns = [
     {
-      title: "User",
+      title: "Staff",
       key: "user",
       width: 250,
       render: (_: unknown, record: User) => (
@@ -293,7 +269,7 @@ export default function Users() {
           </Avatar>
           <div>
             <div style={{ fontWeight: 600, fontSize: "15px", color: "#1a1a1a" }}>
-              {record.name || "Unnamed User"}
+              {record.name || "Unnamed Staff"}
             </div>
             <div style={{ fontSize: "13px", color: "#8c8c8c" }}>
               @{record.username}
@@ -368,8 +344,8 @@ export default function Users() {
             title="Edit"
           />
           <Popconfirm
-            title="Delete User"
-            description="Are you sure you want to delete this user?"
+            title="Delete Staff"
+            description="Are you sure you want to delete this staff member?"
             onConfirm={() => handleDelete(record.id)}
             okText="Delete"
             cancelText="Cancel"
@@ -389,7 +365,7 @@ export default function Users() {
   return (
     <div style={{ padding: 24, background: "#F8FAFC", minHeight: "100vh" }}>
       <div className="ds-page-header" style={{ marginBottom: 24 }}>
-        <h1 className="ds-page-title">User Management</h1>
+        <h1 className="ds-page-title">Staff Management</h1>
       </div>
 
       {/* Statistics Cards */}
@@ -404,7 +380,7 @@ export default function Users() {
             }}
           >
             <Statistic
-              title={<span style={{ color: "rgba(255,255,255,0.8)" }}>Total Users</span>}
+              title={<span style={{ color: "rgba(255,255,255,0.8)" }}>Total Staff</span>}
               value={globalStats.total}
               prefix={<TeamOutlined style={{ color: "#fff" }} />}
               valueStyle={{ color: "#fff", fontWeight: "bold" }}
@@ -438,8 +414,8 @@ export default function Users() {
             }}
           >
             <Statistic
-              title={<span style={{ color: "rgba(0,0,0,0.6)" }}>Customers</span>}
-              value={globalStats.customers}
+              title={<span style={{ color: "rgba(0,0,0,0.6)" }}>Support Staff</span>}
+              value={globalStats.supportStaff}
               prefix={<TeamOutlined style={{ color: "rgba(0,0,0,0.7)" }} />}
               valueStyle={{ color: "rgba(0,0,0,0.8)", fontWeight: "bold" }}
             />
@@ -477,7 +453,7 @@ export default function Users() {
       >
         <Space wrap>
           <Input
-            placeholder="Search users..."
+            placeholder="Search staff..."
             prefix={<SearchOutlined />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -496,11 +472,8 @@ export default function Users() {
         </Space>
 
         <Space>
-          <Button icon={<DownloadOutlined />} onClick={handleExport}>
-            Export
-          </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            Add User
+            Add Staff
           </Button>
         </Space>
       </div>
@@ -512,7 +485,6 @@ export default function Users() {
           dataSource={data}
           loading={loading}
           rowKey="id"
-          rowSelection={rowSelection}
           pagination={{
             current: page,
             pageSize,
@@ -520,7 +492,7 @@ export default function Users() {
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} users`,
+              `${range[0]}-${range[1]} of ${total} staff`,
             onChange: (page, pageSize) => {
               setPage(page);
               setPageSize(pageSize || 10);
@@ -532,7 +504,7 @@ export default function Users() {
             emptyText: (
               <div className="ds-empty">
                 <div className="ds-empty-icon">👤</div>
-                <div className="ds-empty-text">No users found</div>
+                <div className="ds-empty-text">No staff found</div>
               </div>
             ),
           }}
@@ -541,7 +513,7 @@ export default function Users() {
 
       {/* Add/Edit Modal */}
       <Modal
-        title={editingUser ? "Edit User" : "Add New User"}
+        title={editingUser ? "Edit Staff" : "Add New Staff"}
         open={modalVisible}
         onOk={handleModalSubmit}
         onCancel={() => {
@@ -581,6 +553,20 @@ export default function Users() {
             <Input />
           </Form.Item>
 
+          <Form.Item
+            name="role"
+            label="Role"
+            rules={[{ required: true, message: "Please select a role" }]}
+          >
+            <Select
+              options={[
+                { label: "Admin", value: "ADMIN" },
+                { label: "Support Staff", value: "SUPPORT_STAFF" },
+                { label: "Rider", value: "DELIVERY_PERSONNEL" },
+              ]}
+            />
+          </Form.Item>
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -609,7 +595,7 @@ export default function Users() {
       </Modal>
 
       <Drawer
-        title="User Details"
+        title="Staff Details"
         placement="right"
         width={500}
         onClose={() => setDetailVisible(false)}
@@ -685,7 +671,7 @@ export default function Users() {
                   handleEdit(viewingUser);
                 }}
               >
-                Edit User
+                Edit Staff
               </Button>
             </div>
           </Space>

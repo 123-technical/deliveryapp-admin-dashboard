@@ -39,7 +39,7 @@ const NAV_ITEMS = [
   { key: "/brands", icon: <CrownOutlined />, label: "Brands" },
   { key: "/customers", icon: <TeamOutlined />, label: "Customers" },
   { key: "/riders", icon: <UserSwitchOutlined />, label: "Riders" },
-  { key: "/users", icon: <UserOutlined />, label: "Users" },
+  { key: "/users", icon: <UserOutlined />, label: "Staffs", superAdminOnly: true },
   { key: "/warehouses", icon: <ShopOutlined />, label: "Warehouses" },
   { key: "/delivery-zones", icon: <EnvironmentOutlined />, label: "Delivery Zones", superAdminOnly: true },
   { key: "/reports", icon: <BarChartOutlined />, label: "Reports" },

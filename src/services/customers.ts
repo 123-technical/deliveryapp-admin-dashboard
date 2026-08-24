@@ -46,8 +46,12 @@ export async function fetchCustomers(params: CustomersQuery): Promise<CustomersR
     queryParams.append('limit', params.pageSize.toString());
     
     // Build filters object - status and date filters
-    const filters: Record<string, { eq?: null; ne?: null; gte?: string; lte?: string }> = {};
-    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filters: Record<string, any> = {
+      // This page only shows app end-users, never staff (ADMIN/SUPER_ADMIN) accounts
+      role: 'CUSTOMER',
+    };
+
     // Add status filter if provided
     // Backend only has deletedAt field - active = null, inactive/blocked = not null
     if (params.status && params.status !== 'all') {
