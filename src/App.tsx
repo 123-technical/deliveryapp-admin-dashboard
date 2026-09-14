@@ -11,6 +11,7 @@ const Profile = lazy(() => import("./pages/Profile.tsx"));
 
 const Overview = lazy(() => import("./pages/Overview.tsx"));
 const Customers = lazy(() => import("./pages/Customers.tsx"));
+const CustomerDetail = lazy(() => import("./pages/CustomerDetail.tsx"));
 const Riders = lazy(() => import("./pages/Riders.tsx"));
 const Orders = lazy(() => import("./pages/Orders.tsx"));
 
@@ -57,6 +58,7 @@ function App() {
                   />
                   <Route path="/overview" element={<Overview />} />
                   <Route path="/customers" element={<Customers />} />
+                  <Route path="/customers/:id" element={<CustomerDetail />} />
                   <Route path="/riders" element={<Riders />} />
                   <Route
                     path="/users"

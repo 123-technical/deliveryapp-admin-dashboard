@@ -124,10 +124,12 @@
   padding: 0 !important;
 }
 
-.ds-action-btn.edit {
+.ds-action-btn.edit,
+.ds-action-btn.view {
   color: var(--color-text-secondary) !important;
 }
-.ds-action-btn.edit:hover {
+.ds-action-btn.edit:hover,
+.ds-action-btn.view:hover {
   background: var(--color-border-light) !important;
   color: var(--color-text-primary) !important;
 }

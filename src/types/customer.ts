@@ -1,6 +1,25 @@
+import type { Order } from './order'
+
 export type UserRole = 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN' | 'RIDER' | 'STAFF'
 
 export type CustomerStatus = 'active' | 'blocked' | 'inactive'
+
+export type AddressType = 'HOME' | 'WORK' | 'OTHER'
+
+export type Address = {
+  id: string
+  street: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+  addressType: AddressType
+  isDefault: boolean
+  userId: string
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+}
 
 // Customer type matching backend User entity structure
 export type Customer = {
@@ -15,6 +34,11 @@ export type Customer = {
   deletedAt: string | null // ISO date string
   // Computed fields for display
   status: CustomerStatus // Derived from deletedAt
+  // Optional relations, present when the API includes them (e.g. customer detail view)
+  addresses?: Address[]
+  orders?: Order[]
+  // Present on the list view when the API includes relation counts
+  _count?: { orders: number }
 }
 
 export type CustomersQuery = {

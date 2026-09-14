@@ -10,8 +10,9 @@ import {
   type TableColumnsType,
   App,
 } from "antd";
-import { PlusOutlined, EditOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
+import { useNavigate } from "react-router-dom";
 import {
   useQuery,
   useMutation,
@@ -43,6 +44,7 @@ const defaultForm = {
 
 export default function Customers() {
   const { message: msg } = App.useApp();
+  const navigate = useNavigate();
   const [search, setSearch] = useState<string>("");
   const [status, setStatus] = useState<CustomerStatus | "all">("all");
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
@@ -297,12 +299,24 @@ export default function Customers() {
       ),
     },
     {
+      title: "Orders",
+      key: "ordersCount",
+      width: 90,
+      render: (_: unknown, record: Customer) => record._count?.orders ?? 0,
+    },
+    {
       title: "Actions",
       key: "actions",
-      width: 80,
+      width: 100,
       fixed: "right" as const,
       render: (_: unknown, record: Customer) => (
         <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+          <Button
+            className="ds-action-btn view"
+            icon={<EyeOutlined style={{ fontSize: 14 }} />}
+            onClick={() => navigate(`/customers/${record.id}`)}
+            title="View Customer"
+          />
           <Button
             className="ds-action-btn edit"
             icon={<EditOutlined style={{ fontSize: 14 }} />}

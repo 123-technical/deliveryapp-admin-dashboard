@@ -1,5 +1,6 @@
 import { authService } from "./auth";
-import type { Customer, CustomerStatus, CustomersQuery, CustomersResponse, CreateUserDto, UpdateCustomerDto, UserRole } from '../types/customer';
+import type { Customer, CustomerStatus, CustomersQuery, CustomersResponse, CreateUserDto, UpdateCustomerDto, UserRole, Address } from '../types/customer';
+import type { Order } from '../types/order';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -22,6 +23,9 @@ const mapUserToCustomer = (user: {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  addresses?: Address[];
+  orders?: Order[];
+  _count?: { orders: number };
 }): Customer => {
   return {
     id: user.id,
@@ -34,6 +38,9 @@ const mapUserToCustomer = (user: {
     updatedAt: user.updatedAt,
     deletedAt: user.deletedAt,
     status: getStatusFromDeletedAt(user.deletedAt),
+    addresses: user.addresses,
+    orders: user.orders,
+    _count: user._count,
   };
 };
 
