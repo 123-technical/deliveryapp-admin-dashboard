@@ -120,12 +120,9 @@ export default function OrderDetail() {
   const grandTotal = itemsList.reduce((acc, item) => acc + (Number(item.priceAtPurchase) * item.quantity), 0);
 
   const statusMenuItems: MenuProps['items'] = [
-    { key: "PENDING", label: "Pending" },
-    { key: "CONFIRMED", label: "Confirmed" },
-    { key: "PROCESSING", label: "Processing" },
+    { key: "PENDING", label: "Order Placed" },
     { key: "OUT_FOR_DELIVERY", label: "Out for Delivery" },
     { key: "DELIVERED", label: "Delivered" },
-    { key: "CANCELLED", label: "Cancelled" },
   ];
 
   const orderItemColumns = [
@@ -181,7 +178,7 @@ export default function OrderDetail() {
         </Space>
         <Space>
           <Tag color={getStatusColor(order.status)} style={{ padding: '4px 12px', fontSize: 14 }}>
-            {order.status.replace(/_/g, " ")}
+            {order.status === "PENDING" ? "ORDER PLACED" : order.status.replace(/_/g, " ")}
           </Tag>
           {isAdmin && (
             <Dropdown menu={{ items: statusMenuItems, onClick: (e) => handleUpdateStatus(e.key) }} trigger={['click']}>

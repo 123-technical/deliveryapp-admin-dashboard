@@ -2,21 +2,26 @@ import { Tag } from "antd";
 import type { OrderStatus } from "../types/order";
 
 const colorMap: Record<OrderStatus, string> = {
-  PENDING: "orange",
-  CONFIRMED: "blue",
+  PENDING: "blue",
   PROCESSING: "cyan",
-  OUT_FOR_DELIVERY: "orange",
+  PAID: "geekblue",
   SHIPPED: "purple",
+  OUT_FOR_DELIVERY: "orange",
   DELIVERED: "green",
   CANCELLED: "red",
-  REFUNDED: "gold",
+  RETURNED: "gold",
+};
+
+const labelMap: Partial<Record<OrderStatus, string>> = {
+  PENDING: "Order Placed",
+  OUT_FOR_DELIVERY: "Out for Delivery",
 };
 
 export default function OrderStatusTag({ status }: { status: OrderStatus }) {
   const color = colorMap[status];
   return (
     <Tag color={color} style={{ textTransform: "capitalize" }}>
-      {status}
+      {labelMap[status] || status.replace(/_/g, " ").toLowerCase()}
     </Tag>
   );
 }

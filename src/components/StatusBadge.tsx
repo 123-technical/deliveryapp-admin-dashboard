@@ -37,7 +37,7 @@ const statusLabel: Record<string, string> = {
   active: "Active",
   available: "Available",
   inactive: "Inactive",
-  pending: "Pending",
+  pending: "Order Placed",
   confirmed: "Confirmed",
   processing: "Processing",
   out_for_delivery: "Out for Delivery",
@@ -48,8 +48,9 @@ const statusLabel: Record<string, string> = {
 
 export default function StatusBadge({ status }: StatusBadgeProps) {
   const raw = status === null || status === undefined ? "" : String(status);
-  const key = statusMap[raw] || statusMap[raw.toLowerCase()] || "pending";
-  const label = statusLabel[key] || raw.replace(/_/g, " ");
+  const mapped = statusMap[raw] || statusMap[raw.toLowerCase()];
+  const key = mapped || "pending";
+  const label = (mapped && statusLabel[mapped]) || raw.replace(/_/g, " ");
 
   return <span className={`ds-badge ${key}`}>{label}</span>;
 }

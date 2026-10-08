@@ -14,7 +14,6 @@ const Customers = lazy(() => import("./pages/Customers.tsx"));
 const CustomerDetail = lazy(() => import("./pages/CustomerDetail.tsx"));
 const Riders = lazy(() => import("./pages/Riders.tsx"));
 const Orders = lazy(() => import("./pages/Orders.tsx"));
-
 const Products = lazy(() => import("./pages/Products.tsx"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail.tsx"));
 const ProductDuplicate = lazy(() => import("./pages/ProductDuplicate.tsx"));

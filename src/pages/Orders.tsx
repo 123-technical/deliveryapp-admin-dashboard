@@ -405,12 +405,9 @@ export default function Orders() {
           onChange={(val) => { setStatus(val); setPage(1); }}
         >
           <Option value="all">All Status</Option>
-          <Option value="PENDING">Pending</Option>
-          <Option value="CONFIRMED">Confirmed</Option>
-          <Option value="PROCESSING">Processing</Option>
+          <Option value="PENDING">Order Placed</Option>
           <Option value="OUT_FOR_DELIVERY">Out for Delivery</Option>
           <Option value="DELIVERED">Delivered</Option>
-          <Option value="CANCELLED">Cancelled</Option>
         </Select>
         <RangePicker onChange={(val) => { setRange(val as any); setPage(1); }} />
         <Button onClick={() => { setSearch(""); setStatus("all"); setRange(null); setPage(1); }}>
@@ -457,12 +454,9 @@ export default function Orders() {
         <Form form={editForm} layout="vertical">
           <Form.Item name="status" label="Status" rules={[{ required: true }]}>
             <Select>
-              <Option value="PENDING">Pending</Option>
-              <Option value="CONFIRMED">Confirmed</Option>
-              <Option value="PROCESSING">Processing</Option>
+              <Option value="PENDING">Order Placed</Option>
               <Option value="OUT_FOR_DELIVERY">Out for Delivery</Option>
               <Option value="DELIVERED">Delivered</Option>
-              <Option value="CANCELLED">Cancelled</Option>
             </Select>
           </Form.Item>
         </Form>

@@ -1,12 +1,12 @@
 export type OrderStatus = 
-  | 'PENDING'
-  | 'CONFIRMED'
+  | 'PENDING' // shown as "Order Placed"
   | 'PROCESSING'
+  | 'PAID'
+  | 'SHIPPED'
   | 'OUT_FOR_DELIVERY'
-  | 'SHIPPED' // keeping from original just in case
   | 'DELIVERED'
   | 'CANCELLED'
-  | 'REFUNDED'
+  | 'RETURNED'
 
 export type PaymentStatus = 
   | 'PENDING'
