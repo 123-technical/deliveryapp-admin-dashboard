@@ -26,6 +26,7 @@ import dayjs from "dayjs";
 import { orderService } from "../services/orders";
 import { useAuth } from "../contexts/AuthContext";
 import type { Order } from "../types/order";
+import LocationPreviewMap from "../components/maps/LocationPreviewMap";
 
 const { Title, Text } = Typography;
 
@@ -257,6 +258,9 @@ export default function OrderDetail() {
                   <div>
                     <div>{order.deliveryAddress.street}</div>
                     <div>{order.deliveryAddress.city}{order.deliveryAddress.state ? `, ${order.deliveryAddress.state}` : ""} {order.deliveryAddress.postalCode}</div>
+                    <div style={{ marginTop: 12 }}>
+                      <LocationPreviewMap lat={order.deliveryAddress.lat} lng={order.deliveryAddress.lng} />
+                    </div>
                   </div>
                 ) : (
                   <Text code>{order.deliveryAddressId}</Text>

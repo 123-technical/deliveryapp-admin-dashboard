@@ -3,7 +3,12 @@ import type { Warehouse } from "../types/warehouse";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
-export type CreateWarehouseDto = { name: string; location: string };
+export type CreateWarehouseDto = {
+    name: string;
+    location: string;
+    latitude?: number | null;
+    longitude?: number | null;
+};
 export type UpdateWarehouseDto = Partial<CreateWarehouseDto>;
 
 class WarehouseService {

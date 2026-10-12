@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Button,
@@ -17,82 +17,35 @@ import { deliveryZoneService } from "../services/deliveryZones";
 import type { Warehouse } from "../types/warehouse";
 import type { DeliveryZone } from "../types/deliveryZone";
 import DrawerForm from "../components/DrawerForm";
-import DeliveryZoneMap, { type DeliveryZoneMapHandle, type DeliveryZoneMapMode } from "../components/DeliveryZoneMap";
+import ZoneEditor from "../components/maps/ZoneEditor";
+import ZonesOverviewMap from "../components/maps/ZonesOverviewMap";
+import { validateZoneDraft, warehouseColor, type ZoneDraft } from "../components/maps/zoneShapes";
 
-// Best-effort geocode of a free-text warehouse address, used only as a
-// fallback map center when a warehouse has no zones drawn yet.
-async function geocodeAddress(query: string): Promise<{ lat: number; lng: number } | null> {
-  if (!query.trim()) return null;
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`
-    );
-    const results = (await res.json()) as Array<{ lat: string; lon: string }>;
-    if (results.length === 0) return null;
-    return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
-  } catch {
-    return null;
-  }
-}
+const ALL = "__all__";
 
 const DeliveryZones = () => {
-  const { message } = App.useApp();
-  const mapRef = useRef<DeliveryZoneMapHandle>(null);
+  const { message, modal } = App.useApp();
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(null);
-
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [loadingZones, setLoadingZones] = useState(false);
-  const [centerHint, setCenterHint] = useState<{ lat: number; lng: number } | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [filter, setFilter] = useState<string>(ALL);
 
-  const [mapMode, setMapMode] = useState<DeliveryZoneMapMode>("view");
+  // Editor state: the drawer and the drawing map are open together.
+  const [editorOpen, setEditorOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
+  const [draft, setDraft] = useState<ZoneDraft | null>(null);
   const [saving, setSaving] = useState(false);
-  const [hasDraft, setHasDraft] = useState(false);
   const [form] = Form.useForm();
+  const formWarehouseId: string | undefined = Form.useWatch("warehouseId", form);
 
-  // ── Load warehouses, auto-select the first one ──
-  useEffect(() => {
-    (async () => {
-      setLoadingWarehouses(true);
-      try {
-        const data = await warehouseService.getWarehouses();
-        setWarehouses(data);
-        if (data.length > 0) setSelectedWarehouseId(data[0].id);
-      } catch {
-        message.error("Failed to fetch warehouses");
-      } finally {
-        setLoadingWarehouses(false);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Load zones + a fallback center whenever the selected warehouse changes ──
-  useEffect(() => {
-    if (!selectedWarehouseId) {
-      setZones([]);
-      setCenterHint(null);
-      return;
-    }
-    setMapMode("view");
-    setEditingZone(null);
-    fetchZones(selectedWarehouseId);
-    const warehouse = warehouses.find((w) => w.id === selectedWarehouseId);
-    if (warehouse) {
-      geocodeAddress(warehouse.location).then(setCenterHint);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedWarehouseId]);
-
-  const fetchZones = async (warehouseId: string) => {
+  const fetchZones = async () => {
     setLoadingZones(true);
     try {
-      const data = await deliveryZoneService.getDeliveryZones(warehouseId);
-      setZones(data);
+      setZones(await deliveryZoneService.getDeliveryZones());
     } catch {
       message.error("Failed to fetch delivery zones");
     } finally {
@@ -100,58 +53,107 @@ const DeliveryZones = () => {
     }
   };
 
-  // ── Add / Edit / Cancel ──
-  // Adding: drop straight into draw mode with no form yet — the map should be
-  // the only thing on screen until a shape actually exists. The form drawer
-  // slides in on its own once drawing finishes (see the effect below).
-  const openAddDrawer = () => {
-    form.resetFields();
-    form.setFieldsValue({ isActive: true, priority: 0 });
-    setEditingZone(null);
-    setHasDraft(false);
-    setMapMode("draw");
-  };
-
-  // Editing: the shape already exists, so there's nothing to wait for —
-  // show the form right away.
-  const openEditDrawer = (zone: DeliveryZone) => {
-    form.setFieldsValue({ name: zone.name, isActive: zone.isActive, priority: zone.priority });
-    setEditingZone(zone);
-    setHasDraft(true);
-    setMapMode("edit");
-    setDrawerOpen(true);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setMapMode("view");
-    setEditingZone(null);
-    setHasDraft(false);
-    form.resetFields();
-  };
-
-  // Reveal the form the moment a fresh shape is finished (add flow only —
-  // edit flow opens the drawer immediately since its shape already exists).
   useEffect(() => {
-    if (mapMode === "draw" && hasDraft) setDrawerOpen(true);
-  }, [mapMode, hasDraft]);
+    (async () => {
+      setLoadingWarehouses(true);
+      try {
+        setWarehouses(await warehouseService.getWarehouses());
+      } catch {
+        message.error("Failed to fetch warehouses");
+      } finally {
+        setLoadingWarehouses(false);
+      }
+      await fetchZones();
+      setLoaded(true);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const colorKeys = useMemo(() => warehouses.map((w) => w.id), [warehouses]);
+  const warehouseById = (id: string | undefined) => warehouses.find((w) => w.id === id);
+  const visibleZones = filter === ALL ? zones : zones.filter((z) => z.warehouseId === filter);
+  const visibleWarehouses = filter === ALL ? warehouses : warehouses.filter((w) => w.id === filter);
+
+  // ── Open / close the editor ──
+  const openAdd = () => {
+    form.resetFields();
+    form.setFieldsValue({
+      isActive: true,
+      priority: 0,
+      warehouseId: filter !== ALL ? filter : warehouses[0]?.id,
+    });
+    setEditingZone(null);
+    setDraft(null);
+    setEditorKey((k) => k + 1);
+    setEditorOpen(true);
+  };
+
+  const openEdit = (zone: DeliveryZone) => {
+    form.setFieldsValue({
+      name: zone.name,
+      warehouseId: zone.warehouseId,
+      isActive: zone.isActive,
+      priority: zone.priority,
+    });
+    setEditingZone(zone);
+    setDraft({ shapeType: zone.shapeType, shape: zone.shape });
+    setEditorKey((k) => k + 1);
+    setEditorOpen(true);
+  };
+
+  const closeEditor = () => {
+    setEditorOpen(false);
+    setEditingZone(null);
+    setDraft(null);
+    form.resetFields();
+  };
+
+  const draftError = validateZoneDraft(draft);
+  // Clearing an existing zone's shape and saving means "delete this zone".
+  const pendingDelete = !!editingZone && draft === null;
+
+  const confirmDeleteFromEditor = (zone: DeliveryZone) => {
+    modal.confirm({
+      title: `Delete "${zone.name}"?`,
+      content: "You cleared this zone's shape. Saving now deletes the zone. This can't be undone.",
+      okText: "Delete Zone",
+      okType: "danger",
+      cancelText: "Keep Editing",
+      onOk: async () => {
+        setSaving(true);
+        try {
+          await deliveryZoneService.deleteDeliveryZone(zone.id);
+          message.success("Delivery zone deleted successfully");
+          closeEditor();
+          fetchZones();
+        } catch {
+          message.error("Failed to delete delivery zone");
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
+  };
 
   const handleSave = async () => {
-    if (!selectedWarehouseId) return;
+    if (pendingDelete && editingZone) {
+      confirmDeleteFromEditor(editingZone);
+      return;
+    }
     try {
       const values = await form.validateFields();
-      const draft = mapRef.current?.getCurrentDraft();
-      if (!draft) {
-        message.error("Please draw a zone on the map before saving.");
+      const problem = validateZoneDraft(draft);
+      if (problem || !draft) {
+        message.error(problem ?? "Draw the zone on the map first.");
         return;
       }
 
       setSaving(true);
       const dto = {
         name: values.name,
-        warehouseId: selectedWarehouseId,
+        warehouseId: values.warehouseId,
         isActive: values.isActive,
-        priority: values.priority,
+        priority: values.priority ?? 0,
         shapeType: draft.shapeType,
         shape: draft.shape,
       };
@@ -164,8 +166,8 @@ const DeliveryZones = () => {
         message.success("Delivery zone created successfully");
       }
 
-      closeDrawer();
-      fetchZones(selectedWarehouseId);
+      closeEditor();
+      fetchZones();
     } catch (error) {
       if (error instanceof Error) message.error(error.message || "Failed to save delivery zone");
     } finally {
@@ -177,7 +179,7 @@ const DeliveryZones = () => {
     try {
       await deliveryZoneService.deleteDeliveryZone(zone.id);
       message.success("Delivery zone deleted successfully");
-      if (selectedWarehouseId) fetchZones(selectedWarehouseId);
+      fetchZones();
     } catch {
       message.error("Failed to delete delivery zone");
     }
@@ -192,14 +194,25 @@ const DeliveryZones = () => {
     }
   };
 
-  const selectedWarehouseName = warehouses.find((w) => w.id === selectedWarehouseId)?.name ?? "—";
-
   const columns = [
     { title: "Name", dataIndex: "name", key: "name" },
     {
       title: "Warehouse",
       key: "warehouse",
-      render: () => <span style={{ fontSize: 13, color: "#64748B" }}>{selectedWarehouseName}</span>,
+      render: (_: unknown, record: DeliveryZone) => (
+        <span style={{ fontSize: 13, color: "#475569", display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: warehouseColor(colorKeys, record.warehouseId),
+              display: "inline-block",
+            }}
+          />
+          {warehouseById(record.warehouseId)?.name ?? "—"}
+        </span>
+      ),
     },
     {
       title: "Type",
@@ -227,7 +240,7 @@ const DeliveryZones = () => {
           <Button
             className="ds-action-btn edit"
             icon={<EditOutlined style={{ fontSize: 14 }} />}
-            onClick={() => openEditDrawer(record)}
+            onClick={() => openEdit(record)}
             title="Edit"
           />
           <Popconfirm
@@ -245,45 +258,42 @@ const DeliveryZones = () => {
     },
   ];
 
-  const isDrafting = mapMode === "draw" || mapMode === "edit";
+  const formWarehouse = warehouseById(formWarehouseId);
+  // Every other active zone (any warehouse) is shown faintly so overlaps are obvious.
+  const otherActiveZones = zones.filter((z) => z.isActive && z.id !== editingZone?.id);
 
   return (
     <div style={{ padding: "24px" }}>
       <div className="ds-page-header">
         <h1 className="ds-page-title">Delivery Zones</h1>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          {/* With a single warehouse there's nothing to pick — show it as a label
-              instead of a dropdown. The selector reappears automatically once a
-              second warehouse exists. */}
-          {loadingWarehouses || warehouses.length > 1 ? (
-            <Select
-              placeholder="Select warehouse"
-              style={{ width: 240 }}
-              loading={loadingWarehouses}
-              value={selectedWarehouseId}
-              onChange={setSelectedWarehouseId}
-              options={warehouses.map((w) => ({ label: w.name, value: w.id }))}
-              disabled={isDrafting}
-            />
-          ) : warehouses.length === 1 ? (
-            <span style={{ fontSize: 14, fontWeight: 500, color: "#0F172A" }}>
-              {warehouses[0].name}
-            </span>
-          ) : (
+          {warehouses.length === 0 && !loadingWarehouses ? (
             <span style={{ fontSize: 13, color: "#64748B" }}>
               No warehouses yet — <Link to="/warehouses">add one first</Link>
             </span>
+          ) : (
+            <Select
+              style={{ width: 240 }}
+              loading={loadingWarehouses}
+              value={filter}
+              onChange={setFilter}
+              disabled={editorOpen}
+              options={[
+                { label: "All warehouses", value: ALL },
+                ...warehouses.map((w) => ({ label: w.name, value: w.id })),
+              ]}
+            />
           )}
-          {isDrafting ? (
-            <Button icon={<CloseOutlined />} onClick={closeDrawer}>
-              Cancel Drawing
+          {editorOpen ? (
+            <Button icon={<CloseOutlined />} onClick={closeEditor}>
+              Cancel
             </Button>
           ) : (
             <Button
               icon={<PlusOutlined />}
               className="ds-btn-primary"
-              onClick={openAddDrawer}
-              disabled={!selectedWarehouseId}
+              onClick={openAdd}
+              disabled={warehouses.length === 0}
             >
               Add Zone
             </Button>
@@ -291,43 +301,52 @@ const DeliveryZones = () => {
         </div>
       </div>
 
-      <div style={{ height: 520, marginBottom: 24, position: "relative" }}>
-        {mapMode === "draw" && !hasDraft && (
-          <div
-            style={{
-              position: "absolute",
-              top: 12,
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 10,
-              background: "#0F172A",
-              color: "#fff",
-              padding: "8px 16px",
-              borderRadius: 20,
-              fontSize: 13,
-              fontWeight: 500,
-              pointerEvents: "none",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-            }}
-          >
-            Use the Polygon or Circle tool (top-right) to draw the zone's coverage area
-          </div>
+      {/* Leave room for the maskless drawer so the whole editor map stays reachable. */}
+      <div style={{ height: 520, marginBottom: 12, marginRight: editorOpen ? 440 : 0 }}>
+        {editorOpen ? (
+          <ZoneEditor
+            key={editorKey}
+            initial={editingZone ? { shapeType: editingZone.shapeType, shape: editingZone.shape } : null}
+            onChange={setDraft}
+            warehouse={
+              formWarehouse
+                ? { name: formWarehouse.name, lat: formWarehouse.latitude, lng: formWarehouse.longitude }
+                : null
+            }
+            otherZones={otherActiveZones}
+          />
+        ) : (
+          <ZonesOverviewMap
+            zones={visibleZones}
+            warehouses={visibleWarehouses}
+            colorKeys={colorKeys}
+            onZoneClick={openEdit}
+            fitKey={`${filter}:${loaded}`}
+          />
         )}
-        <DeliveryZoneMap
-          ref={mapRef}
-          zones={zones}
-          editingZoneId={editingZone?.id ?? null}
-          mode={mapMode}
-          centerHint={centerHint}
-          focusKey={selectedWarehouseId ?? ""}
-          onDraftChange={setHasDraft}
-        />
       </div>
+
+      {!editorOpen && warehouses.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, fontSize: 12, color: "#475569", marginBottom: 24 }}>
+          {warehouses.map((w) => (
+            <span key={w.id} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{ width: 10, height: 10, borderRadius: 2, background: warehouseColor(colorKeys, w.id) }}
+              />
+              {w.name}
+              {(w.latitude == null || w.longitude == null) && (
+                <span style={{ color: "#94A3B8" }}>(no map pin)</span>
+              )}
+            </span>
+          ))}
+          <span style={{ color: "#94A3B8" }}>Faded = inactive · Click a zone to edit it</span>
+        </div>
+      )}
 
       <div className="ds-table-wrapper">
         <Table
           columns={columns}
-          dataSource={zones}
+          dataSource={visibleZones}
           rowKey="id"
           loading={loadingZones}
           pagination={{ pageSize: 10, showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} zones` }}
@@ -335,7 +354,7 @@ const DeliveryZones = () => {
             emptyText: (
               <div className="ds-empty">
                 <div className="ds-empty-icon">📍</div>
-                <div className="ds-empty-text">No delivery zones for this warehouse yet</div>
+                <div className="ds-empty-text">No delivery zones yet</div>
               </div>
             ),
           }}
@@ -343,14 +362,15 @@ const DeliveryZones = () => {
       </div>
 
       <DrawerForm
-        isOpen={drawerOpen}
+        isOpen={editorOpen}
         title={editingZone ? "Edit Delivery Zone" : "Add Delivery Zone"}
-        onClose={closeDrawer}
+        onClose={closeEditor}
         onSubmit={handleSave}
         isSubmitting={saving}
-        submitDisabled={!hasDraft}
+        submitDisabled={!!draftError && !pendingDelete}
         submitLabel={editingZone ? "Save Changes" : "Create"}
         mask={false}
+        width={420}
       >
         <div
           style={{
@@ -359,15 +379,17 @@ const DeliveryZones = () => {
             marginBottom: 16,
             padding: "10px 12px",
             borderRadius: 8,
-            background: hasDraft ? "#ECFDF5" : "#EFF6FF",
-            color: hasDraft ? "#047857" : "#1D4ED8",
+            background: pendingDelete ? "#FEF2F2" : draftError ? "#EFF6FF" : "#ECFDF5",
+            color: pendingDelete ? "#B91C1C" : draftError ? "#1D4ED8" : "#047857",
           }}
         >
-          {hasDraft
-            ? "✓ Shape ready — drag its vertices/handle on the map if needed, then save."
-            : editingZone
-            ? "Drag the vertices or radius handle on the map to adjust the zone's shape."
-            : "The map stays interactive — use the Polygon or Circle tool (top-right of the map) to draw the zone's coverage area, then come back here to save."}
+          {pendingDelete
+            ? "Shape cleared — saving will delete this zone. Draw a new shape instead to keep it."
+            : draftError
+            ? draftError
+            : draft?.shapeType === "RADIUS"
+            ? `✓ Circle ready — ${Math.round((draft.shape as { radiusMeters: number }).radiusMeters)} m radius.`
+            : "✓ Polygon ready — adjust it on the map if needed, then save."}
         </div>
         <Form form={form} layout="vertical" name="deliveryZoneForm">
           <Form.Item
@@ -378,13 +400,24 @@ const DeliveryZones = () => {
             <Input placeholder="Enter zone name" className="ds-input" />
           </Form.Item>
 
-          <Form.Item name="priority" label="Priority" initialValue={0}>
-            <InputNumber
-              min={0}
-              precision={0}
-              style={{ width: "100%" }}
-              placeholder="0"
+          <Form.Item
+            name="warehouseId"
+            label="Warehouse"
+            rules={[{ required: true, message: "Please select a warehouse!" }]}
+            extra={
+              formWarehouse && (formWarehouse.latitude == null || formWarehouse.longitude == null)
+                ? "This warehouse has no map pin yet — set one on the Warehouses page to see it here."
+                : undefined
+            }
+          >
+            <Select
+              placeholder="Select warehouse"
+              options={warehouses.map((w) => ({ label: w.name, value: w.id }))}
             />
+          </Form.Item>
+
+          <Form.Item name="priority" label="Priority" initialValue={0}>
+            <InputNumber min={0} precision={0} style={{ width: "100%" }} placeholder="0" />
           </Form.Item>
 
           <Form.Item name="isActive" label="Active" valuePropName="checked" initialValue={true}>

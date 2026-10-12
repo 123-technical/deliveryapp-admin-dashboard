@@ -23,6 +23,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Avatar, Space, Dropdown, Layout, type MenuProps } from "antd";
 import { useAuth } from "../contexts/AuthContext";
+import { MapsProvider } from "../lib/googleMaps";
 
 const { Header, Sider, Content } = Layout;
 
@@ -237,7 +238,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Content */}
         <Content style={{ overflow: "auto", background: "#F8FAFC" }}>
-          {children}
+          {/* Loads the Google Maps JS API once for every page that shows a map. */}
+          <MapsProvider>{children}</MapsProvider>
         </Content>
       </Layout>
     </Layout>

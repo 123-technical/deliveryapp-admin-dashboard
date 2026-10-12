@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import { Button, Table, Popconfirm, Form, Input, App } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, DeleteOutlined, EnvironmentFilled } from "@ant-design/icons";
 import { warehouseService } from "../services/warehouses";
 import type { Warehouse } from "../types/warehouse";
 import DrawerForm from "../components/DrawerForm";
+import MapPicker, { type PickedLocation } from "../components/maps/MapPicker";
+
+const coordValidator = (v: unknown, max: number, label: string) =>
+  v == null || (typeof v === "number" && Number.isFinite(v) && Math.abs(v) <= max)
+    ? Promise.resolve()
+    : Promise.reject(new Error(`${label} is out of range`));
 
 const Warehouses = () => {
   const { message } = App.useApp();
@@ -14,6 +20,8 @@ const Warehouses = () => {
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Bumped on every open so the map picker remounts with the right initial pin.
+  const [pickerKey, setPickerKey] = useState(0);
   const [form] = Form.useForm();
 
   const fetchWarehouses = async () => {
@@ -35,14 +43,34 @@ const Warehouses = () => {
 
   const openAddDrawer = () => {
     form.resetFields();
+    form.setFieldsValue({ latitude: null, longitude: null });
     setEditingWarehouse(null);
+    setPickerKey((k) => k + 1);
     setDrawerOpen(true);
   };
 
   const openEditDrawer = (warehouse: Warehouse) => {
-    form.setFieldsValue({ name: warehouse.name, location: warehouse.location });
+    form.setFieldsValue({
+      name: warehouse.name,
+      location: warehouse.location,
+      latitude: warehouse.latitude ?? null,
+      longitude: warehouse.longitude ?? null,
+    });
     setEditingWarehouse(warehouse);
+    setPickerKey((k) => k + 1);
     setDrawerOpen(true);
+  };
+
+  const handlePinChange = (picked: PickedLocation | null) => {
+    if (!picked) {
+      form.setFieldsValue({ latitude: null, longitude: null });
+      return;
+    }
+    form.setFieldsValue({ latitude: picked.lat, longitude: picked.lng });
+    // Prefer a real address; only fall back to raw coordinates if the field is still empty.
+    if (picked.addressSource !== "coordinates" || !form.getFieldValue("location")) {
+      form.setFieldsValue({ location: picked.address });
+    }
   };
 
   const closeDrawer = () => {
@@ -55,12 +83,18 @@ const Warehouses = () => {
     try {
       const values = await form.validateFields();
       setSaving(true);
+      const dto = {
+        name: values.name,
+        location: values.location,
+        latitude: values.latitude ?? null,
+        longitude: values.longitude ?? null,
+      };
 
       if (editingWarehouse) {
-        await warehouseService.updateWarehouse(editingWarehouse.id, values);
+        await warehouseService.updateWarehouse(editingWarehouse.id, dto);
         message.success("Warehouse updated successfully");
       } else {
-        await warehouseService.createWarehouse(values);
+        await warehouseService.createWarehouse(dto);
         message.success("Warehouse created successfully");
       }
 
@@ -86,6 +120,20 @@ const Warehouses = () => {
   const columns = [
     { title: "Name", dataIndex: "name", key: "name" },
     { title: "Location", dataIndex: "location", key: "location" },
+    {
+      title: "Map Pin",
+      key: "pin",
+      width: 190,
+      render: (_: unknown, record: Warehouse) =>
+        record.latitude != null && record.longitude != null ? (
+          <span style={{ fontSize: 12, color: "#047857" }}>
+            <EnvironmentFilled style={{ marginRight: 4 }} />
+            {record.latitude.toFixed(5)}, {record.longitude.toFixed(5)}
+          </span>
+        ) : (
+          <span style={{ fontSize: 12, color: "#94A3B8" }}>Not set</span>
+        ),
+    },
     {
       title: "Actions",
       key: "actions",
@@ -164,6 +212,31 @@ const Warehouses = () => {
             rules={[{ required: true, message: "Please enter a location!" }]}
           >
             <Input placeholder="e.g. Vidyanagar, Kasaragod, Kerala" className="ds-input" />
+          </Form.Item>
+
+          <Form.Item
+            label="Map Pin"
+            extra="Search or drag the map — the pin in the middle marks the warehouse. Picking a place fills Location."
+          >
+            {drawerOpen && (
+              <MapPicker
+                key={pickerKey}
+                value={
+                  editingWarehouse?.latitude != null && editingWarehouse?.longitude != null
+                    ? { lat: editingWarehouse.latitude, lng: editingWarehouse.longitude }
+                    : null
+                }
+                initialAddress={editingWarehouse?.location}
+                onChange={handlePinChange}
+              />
+            )}
+          </Form.Item>
+
+          <Form.Item name="latitude" hidden rules={[{ validator: (_, v) => coordValidator(v, 90, "Latitude") }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="longitude" hidden rules={[{ validator: (_, v) => coordValidator(v, 180, "Longitude") }]}>
+            <Input />
           </Form.Item>
         </Form>
       </DrawerForm>
