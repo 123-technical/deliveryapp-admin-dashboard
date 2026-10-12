@@ -1,4 +1,4 @@
-import { authService } from "./auth";
+import { fetchWithAuth } from "./auth";
 import type { Warehouse } from "../types/warehouse";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -20,14 +20,9 @@ class WarehouseService {
 
     async getWarehouses(): Promise<Warehouse[]> {
         try {
-            const token = authService.getToken();
             // Large limit — this powers a selector dropdown, not a paginated table.
-            const response = await fetch(`${this.baseURL}/api/v1/warehouses?limit=1000`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/warehouses?limit=1000`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -49,13 +44,8 @@ class WarehouseService {
 
     async createWarehouse(dto: CreateWarehouseDto): Promise<Warehouse> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/warehouses`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/warehouses`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(dto),
             });
 
@@ -74,13 +64,8 @@ class WarehouseService {
 
     async updateWarehouse(id: string, dto: UpdateWarehouseDto): Promise<Warehouse> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/warehouses/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/warehouses/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(dto),
             });
 
@@ -99,13 +84,8 @@ class WarehouseService {
 
     async deleteWarehouse(id: string): Promise<void> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/warehouses/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/warehouses/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {

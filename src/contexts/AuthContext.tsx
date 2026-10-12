@@ -1,7 +1,9 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import type { ReactNode } from "react";
+import { App } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
 import type { AuthState, LoginCredentials, SignupDto } from "../types/auth";
-import { authService, registerUnauthorizedHandler } from "../services/auth";
+import { authService, registerUnauthorizedHandler, handleUnauthorized, TOKEN_KEY } from "../services/auth";
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
@@ -12,16 +14,30 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// setTimeout overflows above ~24.8 days and fires immediately
+const MAX_TIMEOUT_MS = 2 ** 31 - 1;
+
+/** Builds auth state from whatever session is currently persisted. */
+function readStoredAuth(): AuthState {
+  const token = authService.getToken();
+  const user  = authService.getUser();
+  return token && user
+    ? { user, token, refreshToken: null, isAuthenticated: true, isLoading: false }
+    : { user: null, token: null, refreshToken: null, isAuthenticated: false, isLoading: false };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    token: null,
-    refreshToken: null,
-    isAuthenticated: false,
-    isLoading: true,
-  });
+  const { message } = App.useApp();
+  const queryClient = useQueryClient();
+  const [authState, setAuthState] = useState<AuthState>(readStoredAuth);
+
+  // Mirrors isAuthenticated for the 401 handler, which runs outside React's render cycle
+  const isAuthenticatedRef = useRef(authState.isAuthenticated);
+  isAuthenticatedRef.current = authState.isAuthenticated;
 
   const clearAuthState = useCallback(() => {
+    isAuthenticatedRef.current = false;
+    queryClient.clear(); // never show the previous session's cached data
     setAuthState({
       user: null,
       token: null,
@@ -29,39 +45,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: false,
       isLoading: false,
     });
-  }, []);
+  }, [queryClient]);
 
-  // ── Initialize from persisted session ─────────────────────────────────────
-  useEffect(() => {
-    const init = () => {
-      try {
-        // Check expiry before trusting stored token
-        if (authService.isSessionExpired()) {
-          authService.clearSession();
-          setAuthState((prev) => ({ ...prev, isLoading: false }));
-          return;
-        }
-        const token = authService.getToken();
-        const user  = authService.getUser();
-        if (token && user) {
-          setAuthState({ user, token, refreshToken: null, isAuthenticated: true, isLoading: false });
-        } else {
-          setAuthState((prev) => ({ ...prev, isLoading: false }));
-        }
-      } catch {
-        setAuthState((prev) => ({ ...prev, isLoading: false }));
-      }
-    };
-    init();
-  }, []);
-
-  // ── Register 401 handler so all fetch calls trigger logout ────────────────
+  // ── Session ended by the server (401) or by local expiry ──────────────────
+  // Navigation is handled by ProtectedRoute redirecting to /login.
   useEffect(() => {
     registerUnauthorizedHandler(() => {
+      // Several in-flight requests can 401 together — react only once
+      if (!isAuthenticatedRef.current) return;
       clearAuthState();
-      // Navigation is handled by ProtectedRoute redirect
+      message.warning("Your session has expired. Please sign in again.");
     });
+    return () => registerUnauthorizedHandler(null);
+  }, [clearAuthState, message]);
+
+  // ── Log out at expiry even if the tab is idle ─────────────────────────────
+  useEffect(() => {
+    if (!authState.isAuthenticated) return;
+    const expiry = authService.getExpiry();
+    if (expiry === null) return;
+    const timer = setTimeout(handleUnauthorized, Math.min(Math.max(expiry - Date.now(), 0), MAX_TIMEOUT_MS));
+    return () => clearTimeout(timer);
+  }, [authState.isAuthenticated, authState.token]);
+
+  // ── Refresh from storage ──────────────────────────────────────────────────
+  const refreshAuth = useCallback(() => {
+    const next = readStoredAuth();
+    if (next.isAuthenticated) setAuthState(next);
+    else clearAuthState();
   }, [clearAuthState]);
+
+  // ── Keep tabs in sync: login/logout in one tab applies to all ─────────────
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === TOKEN_KEY || e.key === null) refreshAuth();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [refreshAuth]);
 
   // ── Login ──────────────────────────────────────────────────────────────────
   const login = async (credentials: LoginCredentials) => {
@@ -91,17 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     await authService.logout();
     clearAuthState();
-  };
-
-  // ── Refresh from storage (for page focus sync) ────────────────────────────
-  const refreshAuth = () => {
-    const token = authService.getToken();
-    const user  = authService.getUser();
-    if (token && user) {
-      setAuthState({ user, token, refreshToken: null, isAuthenticated: true, isLoading: false });
-    } else {
-      clearAuthState();
-    }
   };
 
   return (

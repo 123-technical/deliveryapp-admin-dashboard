@@ -1,5 +1,6 @@
 import { Suspense, lazy } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import type { Location } from "react-router-dom";
 import AdminLayout from "./layouts/AdminLayout.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import RoleProtectedRoute from "./components/RoleProtectedRoute.tsx";
@@ -30,11 +31,17 @@ const OrderDetail = lazy(() => import("./pages/OrderDetail.tsx"));
 const DeliveryZones = lazy(() => import("./pages/DeliveryZones.tsx"));
 const Warehouses = lazy(() => import("./pages/Warehouses.tsx"));
 
-// GuestRoute: redirect to /overview if already authenticated
+// GuestRoute: once authenticated, go back to the page that sent us to /login
+// (set by ProtectedRoute), or /overview by default
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
   if (isLoading) return null;
-  if (isAuthenticated) return <Navigate to="/overview" replace />;
+  if (isAuthenticated) {
+    const from = (location.state as { from?: Location } | null)?.from;
+    const target = from ? `${from.pathname}${from.search}${from.hash}` : "/overview";
+    return <Navigate to={target} replace />;
+  }
   return <>{children}</>;
 }
 

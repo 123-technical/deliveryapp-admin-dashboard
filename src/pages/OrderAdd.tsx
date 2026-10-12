@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { CreateOrderDto } from "../types/order";
 import { orderService } from "../services/orders";
 import { productService } from "../services/products";
-import { authService } from "../services/auth";
+import { fetchWithAuth } from "../services/auth";
 import { fetchCustomers } from "../services/customers";
 import type { Product } from "../types/product";
 import { message, Select } from "antd";
@@ -163,18 +163,11 @@ export default function OrderAdd() {
     }
     setLoadingAddresses(true);
     try {
-      const token = authService.getToken();
       const API_BASE_URL =
         import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${API_BASE_URL}/api/v1/users/${userId}/addresses`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        }
+        { method: "GET" }
       );
 
       if (response.ok) {

@@ -1,4 +1,4 @@
-import { authService } from "./auth";
+import { fetchWithAuth } from "./auth";
 import type { Product, ProductsQuery, ProductsResponse, CreateProductDto, UpdateProductDto, CategoryProductCount } from '../types/product';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -12,7 +12,6 @@ class ProductService {
 
     async getProducts(params: ProductsQuery): Promise<ProductsResponse> {
         try {
-            const token = authService.getToken();
             const queryParams = new URLSearchParams();
             
             // Add query parameters
@@ -31,12 +30,8 @@ class ProductService {
             if (params.sortBy) queryParams.append('sortBy', params.sortBy);
             if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
-            const response = await fetch(`${this.baseURL}/api/v1/products?${queryParams.toString()}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/products?${queryParams.toString()}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -68,13 +63,8 @@ class ProductService {
 
     async getProductById(id: string): Promise<Product> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/products/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/products/${id}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -98,15 +88,10 @@ class ProductService {
 
     async createProduct(productData: CreateProductDto): Promise<Product> {
         try {
-            const token = authService.getToken();
             console.log('Creating product with data:', productData);
             
-            const response = await fetch(`${this.baseURL}/api/v1/products`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/products`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(productData),
             });
 
@@ -138,13 +123,8 @@ class ProductService {
 
     async updateProduct(id: string, productData: UpdateProductDto): Promise<Product> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/products/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/products/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(productData),
             });
 
@@ -169,13 +149,8 @@ class ProductService {
 
     async getCategoryCounts(): Promise<CategoryProductCount[]> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/products/stats/category-counts`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/products/stats/category-counts`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -193,13 +168,8 @@ class ProductService {
 
     async deleteProduct(id: string): Promise<void> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/products/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/products/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {

@@ -1,11 +1,10 @@
-import { authService } from "./auth";
+import { fetchWithAuth } from "./auth";
 import type { Rider, RidersQuery, RidersResponse } from '../types/rider';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 export async function fetchRiders(params: RidersQuery): Promise<RidersResponse> {
   try {
-    const token = authService.getToken();
     const queryParams = new URLSearchParams();
 
     queryParams.append('page', params.page.toString());
@@ -23,12 +22,8 @@ export async function fetchRiders(params: RidersQuery): Promise<RidersResponse> 
       queryParams.append('sort', JSON.stringify({ [params.sortBy]: params.sortOrder === 'descend' ? 'desc' : 'asc' }));
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/users?${queryParams.toString()}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users?${queryParams.toString()}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
     });
 
     if (!response.ok) {
@@ -45,13 +40,8 @@ export async function fetchRiders(params: RidersQuery): Promise<RidersResponse> 
 
 export async function updateRider(id: string, partial: Partial<Rider>): Promise<Rider> {
   try {
-    const token = authService.getToken();
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
       body: JSON.stringify(partial),
     });
 
@@ -69,13 +59,8 @@ export async function updateRider(id: string, partial: Partial<Rider>): Promise<
 
 export async function createRider(payload: Partial<Rider> & { password: string }): Promise<Rider> {
   try {
-    const token = authService.getToken();
-    const response = await fetch(`${API_BASE_URL}/api/v1/users`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
       body: JSON.stringify({ ...payload, role: 'DELIVERY_PERSONNEL' }),
     });
 
@@ -93,13 +78,8 @@ export async function createRider(payload: Partial<Rider> & { password: string }
 
 export async function deleteRider(id: string): Promise<void> {
   try {
-    const token = authService.getToken();
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
     });
 
     if (!response.ok) {
@@ -113,13 +93,8 @@ export async function deleteRider(id: string): Promise<void> {
 
 export async function getRiderById(id: string): Promise<Rider> {
   try {
-    const token = authService.getToken();
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${id}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
     });
 
     if (!response.ok) {

@@ -1,4 +1,4 @@
-import { authService } from "./auth";
+import { fetchWithAuth } from "./auth";
 import type { Brand, BrandsQuery, BrandsResponse, CreateBrandDto, UpdateBrandDto } from '../types/brand';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -12,7 +12,6 @@ class BrandService {
 
     async getBrands(params: BrandsQuery): Promise<BrandsResponse> {
         try {
-            const token = authService.getToken();
             const queryParams = new URLSearchParams();
             
             // Add query parameters
@@ -22,12 +21,8 @@ class BrandService {
             if (params.sortBy) queryParams.append('sortBy', params.sortBy);
             if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
-            const response = await fetch(`${this.baseURL}/api/v1/brands?${queryParams.toString()}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/brands?${queryParams.toString()}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -55,13 +50,8 @@ class BrandService {
 
     async getBrandById(id: string): Promise<Brand> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/brands/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/brands/${id}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -80,14 +70,8 @@ class BrandService {
 
     async createBrand(brandData: CreateBrandDto): Promise<Brand> {
         try {
-            const token = authService.getToken();
-            
-            const response = await fetch(`${this.baseURL}/api/v1/brands`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/brands`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(brandData),
             });
 
@@ -108,14 +92,8 @@ class BrandService {
 
     async updateBrand(id: string, brandData: UpdateBrandDto): Promise<Brand> {
         try {
-            const token = authService.getToken();
-            
-            const response = await fetch(`${this.baseURL}/api/v1/brands/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/brands/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(brandData),
             });
 
@@ -136,13 +114,8 @@ class BrandService {
 
     async deleteBrand(id: string): Promise<void> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/brands/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/brands/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {

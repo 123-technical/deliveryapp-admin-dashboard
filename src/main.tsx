@@ -19,11 +19,11 @@ createRoot(document.getElementById("root")!).render(
         }}
       >
         <BrowserRouter basename="/admin">
-          <AuthProvider>
-            <AntApp>
+          <AntApp>
+            <AuthProvider>
               <App />
-            </AntApp>
-          </AuthProvider>
+            </AuthProvider>
+          </AntApp>
         </BrowserRouter>
       </ConfigProvider>
     </QueryClientProvider>

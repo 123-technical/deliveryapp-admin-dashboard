@@ -1,4 +1,4 @@
-import { authService } from "./auth";
+import { fetchWithAuth } from "./auth";
 import type { Customer, CustomerStatus, CustomersQuery, CustomersResponse, CreateUserDto, UpdateCustomerDto, UserRole, Address } from '../types/customer';
 import type { Order } from '../types/order';
 
@@ -46,7 +46,6 @@ const mapUserToCustomer = (user: {
 
 export async function fetchCustomers(params: CustomersQuery): Promise<CustomersResponse> {
   try {
-    const token = authService.getToken();
     const queryParams = new URLSearchParams();
     
     queryParams.append('page', params.page.toString());
@@ -99,12 +98,8 @@ export async function fetchCustomers(params: CustomersQuery): Promise<CustomersR
       queryParams.append('sort', JSON.stringify(sortObject));
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/users?${queryParams}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users?${queryParams}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
     });
 
     if (!response.ok) {
@@ -165,8 +160,6 @@ export async function fetchCustomers(params: CustomersQuery): Promise<CustomersR
 
 export async function updateCustomerStatus(id: string, status: CustomerStatus): Promise<Customer> {
   try {
-    const token = authService.getToken();
-    
     // For now, we'll update the user's deletedAt field based on status
     // If status is 'active', set deletedAt to null
     // If status is 'inactive' or 'blocked', we might need a different approach
@@ -174,12 +167,8 @@ export async function updateCustomerStatus(id: string, status: CustomerStatus): 
     
     const updateData: UpdateCustomerDto = { status };
     
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
       body: JSON.stringify(updateData),
     });
 
@@ -201,17 +190,11 @@ export async function updateCustomerStatus(id: string, status: CustomerStatus): 
 
 export async function createUser(userData: CreateUserDto): Promise<Customer> {
   try {
-    const token = authService.getToken();
-    
     // Backend automatically sets role to CUSTOMER, so we don't include it in the payload
     // The CreateUserDto type doesn't include role, so we can send userData directly
     
-    const response = await fetch(`${API_BASE_URL}/api/v1/users`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
       body: JSON.stringify(userData),
     });
 
@@ -239,13 +222,8 @@ export async function createUser(userData: CreateUserDto): Promise<Customer> {
 
 export async function getCustomerById(id: string): Promise<Customer> {
   try {
-    const token = authService.getToken();
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${id}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
     });
 
     if (!response.ok) {

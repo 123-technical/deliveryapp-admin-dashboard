@@ -1,4 +1,4 @@
-import { authService } from "./auth";
+import { fetchWithAuth } from "./auth";
 import type { Category, CreateCategoryDto, UpdateCategoryDto } from '../types/category';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -12,16 +12,8 @@ class CategoryService {
 
     async getEnabledCategories(): Promise<Category[]> {
         try {
-            const token = authService.getToken();
-            const user = authService.getUser();
-            console.log('User role:', user?.role);
-            
-            const response = await fetch(`${this.baseURL}/api/v1/categories`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/categories`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -44,13 +36,8 @@ class CategoryService {
 
     async getCategoryById(id: string): Promise<Category> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/categories/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/categories/${id}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -75,13 +62,8 @@ class CategoryService {
 
     async getSubCategories(parentId: string): Promise<Category[]> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/categories/sub/${parentId}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/categories/sub/${parentId}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -100,13 +82,8 @@ class CategoryService {
 
     async createCategory(categoryData: CreateCategoryDto): Promise<Category> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/categories`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/categories`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(categoryData),
             });
 
@@ -131,13 +108,8 @@ class CategoryService {
 
     async updateCategory(id: string, categoryData: UpdateCategoryDto): Promise<Category> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/categories/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/categories/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(categoryData),
             });
 
@@ -162,13 +134,8 @@ class CategoryService {
 
     async deleteCategory(id: string): Promise<void> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/categories/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/categories/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {

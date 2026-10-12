@@ -1,4 +1,4 @@
-import { authService } from "./auth";
+import { fetchWithAuth } from "./auth";
 import type { 
   Order, 
   OrderWithItems, 
@@ -19,7 +19,6 @@ class OrderService {
 
     async getOrders(query: OrdersQuery): Promise<OrdersResponse> {
         try {
-            const token = authService.getToken();
             const queryParams = new URLSearchParams();
             
             queryParams.append('page', query.page.toString());
@@ -33,12 +32,8 @@ class OrderService {
             if (query.startDate) queryParams.append('startDate', query.startDate);
             if (query.endDate) queryParams.append('endDate', query.endDate);
 
-            const response = await fetch(`${this.baseURL}/api/v1/orders?${queryParams}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/orders?${queryParams}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -69,13 +64,8 @@ class OrderService {
 
     async getOrderById(orderId: string): Promise<OrderWithItems> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/orders/${orderId}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/orders/${orderId}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -94,7 +84,6 @@ class OrderService {
 
     async getUserOrders(userId: string, query: Omit<OrdersQuery, 'userId'>): Promise<OrdersResponse> {
         try {
-            const token = authService.getToken();
             const queryParams = new URLSearchParams();
             
             queryParams.append('page', query.page.toString());
@@ -107,12 +96,8 @@ class OrderService {
             if (query.startDate) queryParams.append('startDate', query.startDate);
             if (query.endDate) queryParams.append('endDate', query.endDate);
 
-            const response = await fetch(`${this.baseURL}/api/v1/orders/user/${userId}?${queryParams}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/orders/user/${userId}?${queryParams}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -143,14 +128,8 @@ class OrderService {
 
     async createOrder(orderData: CreateOrderDto): Promise<Order> {
         try {
-            const token = authService.getToken();
-            
-            const response = await fetch(`${this.baseURL}/api/v1/orders`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/orders`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(orderData),
             });
 
@@ -177,14 +156,8 @@ class OrderService {
 
     async updateOrder(orderId: string, orderData: UpdateOrderDto): Promise<Order> {
         try {
-            const token = authService.getToken();
-            
-            const response = await fetch(`${this.baseURL}/api/v1/orders/${orderId}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/orders/${orderId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(orderData),
             });
 
@@ -205,13 +178,8 @@ class OrderService {
 
     async deleteOrder(orderId: string): Promise<void> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/orders/${orderId}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/orders/${orderId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {

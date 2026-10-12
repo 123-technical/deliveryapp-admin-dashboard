@@ -1,4 +1,4 @@
-import { authService } from "./auth";
+import { fetchWithAuth } from "./auth";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
@@ -61,16 +61,10 @@ class UploadService {
    * Step 1: Request a presigned upload URL from the backend.
    */
   async getPresignedUrl(fileName: string): Promise<UploadUrlResponse> {
-    const token = authService.getToken();
-
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `${this.baseURL}/api/v1/upload/file`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
         body: JSON.stringify({ fileName }),
       }
     );

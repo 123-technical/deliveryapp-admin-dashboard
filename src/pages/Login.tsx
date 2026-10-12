@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { EyeInvisibleOutlined, EyeTwoTone, MobileOutlined, UserOutlined, LockOutlined } from "@ant-design/icons";
 
@@ -98,14 +97,8 @@ function BrandPanel() {
 type TabKey = "mobile" | "username";
 
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
-
-  // If already logged in, bounce to overview
-  if (isAuthenticated) {
-    navigate("/overview", { replace: true });
-    return null;
-  }
+  // Redirect after login is handled by GuestRoute in App.tsx
+  const { login } = useAuth();
 
   const [tab, setTab] = useState<TabKey>("mobile");
   const [mobile, setMobile] = useState("");
@@ -148,7 +141,6 @@ export default function LoginPage() {
       await login(credentials);
       // Clear form state immediately — never leave password around
       setPassword("");
-      navigate("/overview", { replace: true });
     } catch (err) {
       setApiError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {

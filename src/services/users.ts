@@ -1,11 +1,10 @@
-import { authService } from "./auth";
+import { fetchWithAuth } from "./auth";
 import type { User, UsersQuery, UsersResponse, UserRole } from '../types/user';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 export async function fetchUsers(params: UsersQuery): Promise<UsersResponse> {
   try {
-    const token = authService.getToken();
     const queryParams = new URLSearchParams();
 
     queryParams.append('page', params.page.toString());
@@ -23,12 +22,8 @@ export async function fetchUsers(params: UsersQuery): Promise<UsersResponse> {
       queryParams.append('sort', JSON.stringify({ [params.sortBy]: params.sortOrder === 'descend' ? 'desc' : 'asc' }));
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/users?${queryParams.toString()}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users?${queryParams.toString()}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
     });
 
     if (!response.ok) {
@@ -45,13 +40,8 @@ export async function fetchUsers(params: UsersQuery): Promise<UsersResponse> {
 
 export async function updateUser(id: string, partial: Partial<User>): Promise<User> {
   try {
-    const token = authService.getToken();
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
       body: JSON.stringify(partial),
     });
 
@@ -69,13 +59,8 @@ export async function updateUser(id: string, partial: Partial<User>): Promise<Us
 
 export async function createUser(payload: any): Promise<User> {
   try {
-    const token = authService.getToken();
-    const response = await fetch(`${API_BASE_URL}/api/v1/users`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
       body: JSON.stringify(payload),
     });
 
@@ -93,13 +78,8 @@ export async function createUser(payload: any): Promise<User> {
 
 export async function deleteUser(id: string): Promise<void> {
   try {
-    const token = authService.getToken();
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
     });
 
     if (!response.ok) {
@@ -114,13 +94,8 @@ export async function deleteUser(id: string): Promise<void> {
 // Keep helper functions for UI consistency even if not yet fully implemented on backend
 export async function getUserById(id: string): Promise<User> {
   try {
-    const token = authService.getToken();
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${id}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
     });
 
     if (!response.ok) {
@@ -137,13 +112,8 @@ export async function getUserById(id: string): Promise<User> {
 
 export async function getProfile(): Promise<User> {
   try {
-    const token = authService.getToken();
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/profile`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/profile`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
     });
 
     if (!response.ok) {

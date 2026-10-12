@@ -5,36 +5,51 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
 // ─── Token storage with expiry ────────────────────────────────────────────────
 // Tokens are stored in localStorage with an expiry timestamp.
 // On every read we validate the expiry and clear if stale.
-const TOKEN_KEY   = 'auth_token';
+// localStorage is the single source of truth (no in-memory copy), so every tab
+// sees logins/logouts made in other tabs immediately.
+export const TOKEN_KEY = 'auth_token';
 const USER_KEY    = 'auth_user';
 const EXPIRY_KEY  = 'auth_expiry';
-// Default session length: 12 hours
+// Max session length: 12 hours (capped earlier if the JWT itself expires sooner)
 const SESSION_MS  = 12 * 60 * 60 * 1000;
 
-// In-memory cache so the token survives tab focus without re-parsing localStorage
-let _memToken: string | null = null;
+/** Reads the `exp` claim (ms) from a JWT without verifying it; null if absent/unparseable. */
+function jwtExpiry(token: string): number | null {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const { exp } = JSON.parse(atob(payload));
+    return typeof exp === 'number' ? exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
 
 // ─── 401 global handler registry ─────────────────────────────────────────────
 type UnauthorizedHandler = () => void;
 let _unauthorizedHandler: UnauthorizedHandler | null = null;
 
-export function registerUnauthorizedHandler(handler: UnauthorizedHandler) {
+export function registerUnauthorizedHandler(handler: UnauthorizedHandler | null) {
   _unauthorizedHandler = handler;
 }
 
-function handleUnauthorized() {
+/** Ends the local session and lets the app react (redirect to login, notify). */
+export function handleUnauthorized() {
   authService.clearSession();
   _unauthorizedHandler?.();
 }
 
 // ─── Fetch wrapper with 401 interception ──────────────────────────────────────
+// Every authenticated API call must go through here: it attaches the bearer
+// token and turns a 401 (expired/invalidated token) into an app-wide logout.
 export async function fetchWithAuth(input: RequestInfo, init?: RequestInit): Promise<Response> {
+  const headers = new Headers(init?.headers);
   const token = authService.getToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(init?.headers as Record<string, string> | undefined),
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  // FormData needs the browser-generated multipart boundary, so never override it.
+  if (init?.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const response = await fetch(input, { ...init, headers });
   if (response.status === 401) {
     handleUnauthorized();
@@ -100,8 +115,7 @@ class AuthService {
 
   // ── Session storage ────────────────────────────────────────────────────────
   private storeSession(token: string, user: AuthUser) {
-    _memToken = token;
-    const expiry = Date.now() + SESSION_MS;
+    const expiry = Math.min(Date.now() + SESSION_MS, jwtExpiry(token) ?? Infinity);
     try {
       localStorage.setItem(TOKEN_KEY,  token);
       localStorage.setItem(USER_KEY,   JSON.stringify(user));
@@ -112,7 +126,6 @@ class AuthService {
   }
 
   clearSession() {
-    _memToken = null;
     try {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
@@ -126,26 +139,25 @@ class AuthService {
 
   // ── Token getters ──────────────────────────────────────────────────────────
   getToken(): string | null {
-    // Fast path: in-memory cache
-    if (_memToken) return _memToken;
-
+    if (this.isSessionExpired()) {
+      this.clearSession();
+      return null;
+    }
     try {
-      const expiry = Number(localStorage.getItem(EXPIRY_KEY) ?? 0);
-      if (expiry && Date.now() > expiry) {
-        // Token has expired — clear everything
-        this.clearSession();
-        return null;
-      }
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (token) _memToken = token;
-      return token;
+      return localStorage.getItem(TOKEN_KEY);
     } catch {
       return null;
     }
   }
 
-  getRefreshToken(): string | null {
-    return null; // No refresh token implementation on this backend
+  /** Session expiry as epoch ms, or null when there is no session. */
+  getExpiry(): number | null {
+    try {
+      const expiry = Number(localStorage.getItem(EXPIRY_KEY) ?? 0);
+      return expiry > 0 ? expiry : null;
+    } catch {
+      return null;
+    }
   }
 
   getUser(): AuthUser | null {
@@ -162,12 +174,8 @@ class AuthService {
   }
 
   isSessionExpired(): boolean {
-    try {
-      const expiry = Number(localStorage.getItem(EXPIRY_KEY) ?? 0);
-      return expiry > 0 && Date.now() > expiry;
-    } catch {
-      return false;
-    }
+    const expiry = this.getExpiry();
+    return expiry !== null && Date.now() > expiry;
   }
 }
 

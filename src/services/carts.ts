@@ -1,4 +1,4 @@
-import { authService } from "./auth";
+import { fetchWithAuth } from "./auth";
 import type { Cart, CartItem, CartWithItems, CreateCartDto, AddCartItemDto, UpdateCartItemDto, CartsQuery, CartsResponse } from '../types/cart';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -12,7 +12,6 @@ class CartService {
 
     async getCarts(query: CartsQuery): Promise<CartsResponse> {
         try {
-            const token = authService.getToken();
             const queryParams = new URLSearchParams();
             
             queryParams.append('page', query.page.toString());
@@ -23,12 +22,8 @@ class CartService {
             if (query.sortBy) queryParams.append('sortBy', query.sortBy);
             if (query.sortOrder) queryParams.append('sortOrder', query.sortOrder);
 
-            const response = await fetch(`${this.baseURL}/api/v1/carts?${queryParams}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/carts?${queryParams}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -66,15 +61,10 @@ class CartService {
 
     async getCartById(cartId: string): Promise<CartWithItems> {
         try {
-            const token = authService.getToken();
             // Note: This endpoint might need adjustment based on backend implementation
             // If backend distinguishes between userId and cartId, you may need a different endpoint
-            const response = await fetch(`${this.baseURL}/api/v1/carts/${cartId}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/carts/${cartId}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -93,14 +83,8 @@ class CartService {
 
     async createCart(cartData: CreateCartDto): Promise<Cart> {
         try {
-            const token = authService.getToken();
-            
-            const response = await fetch(`${this.baseURL}/api/v1/carts`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/carts`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(cartData),
             });
 
@@ -121,13 +105,8 @@ class CartService {
 
     async getCart(userId: string): Promise<CartWithItems> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/carts/${userId}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/carts/${userId}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -146,14 +125,8 @@ class CartService {
 
     async addItemToCart(userId: string, itemData: AddCartItemDto): Promise<CartItem> {
         try {
-            const token = authService.getToken();
-            
-            const response = await fetch(`${this.baseURL}/api/v1/carts/${userId}/items`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/carts/${userId}/items`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(itemData),
             });
 
@@ -174,14 +147,8 @@ class CartService {
 
     async updateCartItem(itemId: string, itemData: UpdateCartItemDto): Promise<CartItem> {
         try {
-            const token = authService.getToken();
-            
-            const response = await fetch(`${this.baseURL}/api/v1/carts/items/${itemId}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/carts/items/${itemId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(itemData),
             });
 
@@ -202,13 +169,8 @@ class CartService {
 
     async removeCartItem(itemId: string): Promise<void> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/carts/items/${itemId}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/carts/items/${itemId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -222,13 +184,8 @@ class CartService {
 
     async clearCart(userId: string): Promise<void> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/carts/${userId}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/carts/${userId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {

@@ -24,6 +24,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { orderService } from "../services/orders";
 import { productService } from "../services/products";
 import { fetchCustomers } from "../services/customers";
+import { fetchWithAuth } from "../services/auth";
 import { useAuth } from "../contexts/AuthContext";
 import type {
   Order,
@@ -178,10 +179,7 @@ export default function Orders() {
     setLoadingAddresses(true);
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/v1/users/${uid}/addresses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${uid}/addresses`);
       if (res.ok) {
         const data = await res.json();
         setAddresses(Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : []);
@@ -194,10 +192,7 @@ export default function Orders() {
     setLoadingSlots(true);
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/v1/delivery-slots`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/delivery-slots`);
       if (res.ok) {
         const data = await res.json();
         setSlots(Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : []);

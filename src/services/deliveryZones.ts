@@ -1,4 +1,4 @@
-import { authService } from "./auth";
+import { fetchWithAuth } from "./auth";
 import type { DeliveryZone, CreateDeliveryZoneDto, UpdateDeliveryZoneDto } from '../types/deliveryZone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -12,7 +12,6 @@ class DeliveryZoneService {
 
     async getDeliveryZones(warehouseId?: string): Promise<DeliveryZone[]> {
         try {
-            const token = authService.getToken();
             const queryParams = new URLSearchParams();
             queryParams.append('limit', '1000');
             // Backend's generic list filtering takes a JSON-encoded `filters` object,
@@ -20,12 +19,8 @@ class DeliveryZoneService {
             // this API's other list endpoints (see FilterQueryPipe).
             if (warehouseId) queryParams.append('filters', JSON.stringify({ warehouseId }));
 
-            const response = await fetch(`${this.baseURL}/api/v1/delivery-zones?${queryParams.toString()}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/delivery-zones?${queryParams.toString()}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {
@@ -46,14 +41,8 @@ class DeliveryZoneService {
 
     async createDeliveryZone(dto: CreateDeliveryZoneDto): Promise<DeliveryZone> {
         try {
-            const token = authService.getToken();
-
-            const response = await fetch(`${this.baseURL}/api/v1/delivery-zones`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/delivery-zones`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(dto),
             });
 
@@ -72,14 +61,8 @@ class DeliveryZoneService {
 
     async updateDeliveryZone(id: string, dto: UpdateDeliveryZoneDto): Promise<DeliveryZone> {
         try {
-            const token = authService.getToken();
-
-            const response = await fetch(`${this.baseURL}/api/v1/delivery-zones/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/delivery-zones/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
                 body: JSON.stringify(dto),
             });
 
@@ -98,13 +81,8 @@ class DeliveryZoneService {
 
     async deleteDeliveryZone(id: string): Promise<void> {
         try {
-            const token = authService.getToken();
-            const response = await fetch(`${this.baseURL}/api/v1/delivery-zones/${id}`, {
+            const response = await fetchWithAuth(`${this.baseURL}/api/v1/delivery-zones/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
             });
 
             if (!response.ok) {

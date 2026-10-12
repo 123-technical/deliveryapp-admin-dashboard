@@ -27,6 +27,7 @@ import type {
   CreateUserDto,
 } from "../types/customer";
 import { fetchCustomers, updateCustomerStatus, createUser } from "../services/customers";
+import { fetchWithAuth } from "../services/auth";
 import DrawerForm from "../components/DrawerForm";
 import StatusBadge from "../components/StatusBadge";
 import CopyableId from "../components/CopyableId";
@@ -177,19 +178,14 @@ export default function Customers() {
       if (editingCustomer) {
         // Use the updateCustomerStatus endpoint or a direct PUT for field updates
         const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-        const token = localStorage.getItem("token");
         const payload: Record<string, string> = {
           username: form.username,
           mobile: form.mobile,
         };
         if (form.email) payload.email = form.email;
         if (form.name) payload.name = form.name;
-        const res = await fetch(`${API_BASE_URL}/api/v1/users/${editingCustomer.id}`, {
+        const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${editingCustomer.id}`, {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
