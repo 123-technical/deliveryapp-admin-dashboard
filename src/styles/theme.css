@@ -180,6 +180,14 @@
   z-index: 0;
 }
 
+/* ─── Google Maps vertex undo ───────────────────────────────────────────────── */
+/* ZoneEditor has its own undo/redo history, so hide the one-step undo arrow that
+   Google draws next to an editable polygon/circle after each drag. */
+.gm-style img[src$="undo_poly.png"],
+.gm-style div:has(> img[src$="undo_poly.png"]) {
+  display: none !important;
+}
+
 /* ─── Drawer Overlay ────────────────────────────────────────────────────────── */
 .ds-drawer-overlay {
   position: fixed;

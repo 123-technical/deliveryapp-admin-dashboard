@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import {
   AdvancedMarker,
   ControlPosition,
@@ -8,7 +8,7 @@ import {
   useMap,
 } from "@vis.gl/react-google-maps";
 import { Button, Segmented, Tooltip } from "antd";
-import { DeleteOutlined, CheckOutlined } from "@ant-design/icons";
+import { DeleteOutlined, CheckOutlined, UndoOutlined, RedoOutlined } from "@ant-design/icons";
 import { MapGate } from "../../lib/googleMaps";
 import { DEFAULT_CENTER, DEFAULT_ZOOM, GOOGLE_MAPS_MAP_ID } from "../../lib/googleMapsConfig";
 import type { DeliveryZone, PolygonShape, RadiusShape } from "../../types/deliveryZone";
@@ -30,7 +30,7 @@ type Props = {
   /** Shape to start from. Remount (change `key`) to load a different zone. */
   initial: ZoneDraft | null;
   onChange: (draft: ZoneDraft | null) => void;
-  /** Warehouse the zone belongs to — shown as a marker and used to center a new zone. */
+  /** Warehouse the zone belongs to â€” shown as a marker and used to center a new zone. */
   warehouse?: ZoneEditorWarehouse | null;
   /** Other active zones, drawn faintly so overlaps are visible. */
   otherZones?: DeliveryZone[];
@@ -47,10 +47,23 @@ const SHAPE_STYLE = {
   zIndex: 10,
 };
 
+const MAX_HISTORY = 100;
+// Circle drags fire radius/center changes continuously; fold them into one undo step.
+const CIRCLE_COMMIT_DELAY_MS = 300;
+
+const sameDraft = (a: ZoneDraft | null, b: ZoneDraft | null) => JSON.stringify(a) === JSON.stringify(b);
+
+const isTypingTarget = (t: EventTarget | null) =>
+  t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+
+type HistoryControls = { undo: () => void; redo: () => void };
+
 /**
  * Draw/edit one delivery zone. Polygon: click to add vertices, drag to move
  * them, drag a midpoint to insert one, right-click a vertex to remove it.
  * Circle: click to place, then drag the center or the edge handle.
+ * Every change (including Clear) goes into an undo/redo history â€”
+ * Ctrl+Z / Ctrl+Shift+Z (or Ctrl+Y) work too.
  * (Custom click-to-add instead of the deprecated Drawing Library.)
  */
 export default function ZoneEditor({ height = 520, ...props }: Props) {
@@ -69,7 +82,23 @@ function EditorMap({ initial, onChange, warehouse, otherZones = [], height }: Pr
     initial?.shapeType === "POLYGON" ? ringToPath(initial.shape as PolygonShape).length : 0
   );
   const [clearSignal, setClearSignal] = useState(0);
+  const [history, setHistory] = useState({ canUndo: false, canRedo: false });
+  const historyControls = useRef<HistoryControls | null>(null);
   const drawing = mode !== "edit";
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || isTypingTarget(e.target)) return;
+      const key = e.key.toLowerCase();
+      const redo = key === "y" || (key === "z" && e.shiftKey);
+      if (key !== "z" && !redo) return;
+      e.preventDefault();
+      if (redo) historyControls.current?.redo();
+      else historyControls.current?.undo();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const warehousePoint =
     warehouse && isValidLatLng({ lat: warehouse.lat ?? NaN, lng: warehouse.lng ?? NaN })
@@ -127,8 +156,10 @@ function EditorMap({ initial, onChange, warehouse, otherZones = [], height }: Pr
           clearSignal={clearSignal}
           warehousePoint={warehousePoint}
           otherZones={otherZones}
+          controlsRef={historyControls}
           onModeChange={setMode}
           onVertexCount={setVertexCount}
+          onHistory={(canUndo, canRedo) => setHistory({ canUndo, canRedo })}
           onDraft={(d) => {
             setHasShape(!!d);
             onChange(d);
@@ -157,6 +188,24 @@ function EditorMap({ initial, onChange, warehouse, otherZones = [], height }: Pr
               ]}
               onChange={(v) => startTool(v as "POLYGON" | "RADIUS")}
             />
+            <Tooltip title="Undo (Ctrl+Z)">
+              <Button
+                size="small"
+                icon={<UndoOutlined />}
+                aria-label="Undo"
+                disabled={!history.canUndo}
+                onClick={() => historyControls.current?.undo()}
+              />
+            </Tooltip>
+            <Tooltip title="Redo (Ctrl+Shift+Z)">
+              <Button
+                size="small"
+                icon={<RedoOutlined />}
+                aria-label="Redo"
+                disabled={!history.canRedo}
+                onClick={() => historyControls.current?.redo()}
+              />
+            </Tooltip>
             {mode === "drawPolygon" && vertexCount >= 3 && (
               <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => setMode("edit")}>
                 Done
@@ -204,7 +253,7 @@ function EditorMap({ initial, onChange, warehouse, otherZones = [], height }: Pr
 }
 
 /**
- * Owns the single editable google.maps.Polygon / Circle imperatively — the
+ * Owns the single editable google.maps.Polygon / Circle imperatively â€” the
  * Maps API mutates these in place while the admin drags, so React state only
  * receives the converted JSON draft.
  */
@@ -215,9 +264,11 @@ function EditableShape({
   clearSignal,
   warehousePoint,
   otherZones,
+  controlsRef,
   onModeChange,
   onVertexCount,
   onDraft,
+  onHistory,
 }: {
   mapId: string;
   initial: ZoneDraft | null;
@@ -225,9 +276,11 @@ function EditableShape({
   clearSignal: number;
   warehousePoint: google.maps.LatLngLiteral | null;
   otherZones: DeliveryZone[];
+  controlsRef: RefObject<HistoryControls | null>;
   onModeChange: (m: Mode) => void;
   onVertexCount: (n: number) => void;
   onDraft: (d: ZoneDraft | null) => void;
+  onHistory: (canUndo: boolean, canRedo: boolean) => void;
 }) {
   const map = useMap(mapId);
   const polygonRef = useRef<google.maps.Polygon | null>(null);
@@ -236,9 +289,80 @@ function EditableShape({
   const modeRef = useRef(mode);
   modeRef.current = mode;
   // Latest callbacks without re-running the effects that wire up Maps listeners.
-  const cbRef = useRef({ onModeChange, onVertexCount, onDraft });
-  cbRef.current = { onModeChange, onVertexCount, onDraft };
+  const cbRef = useRef({ onModeChange, onVertexCount, onDraft, onHistory });
+  cbRef.current = { onModeChange, onVertexCount, onDraft, onHistory };
   const fittedRef = useRef(false);
+
+  // Undo/redo: snapshots of the draft, with `index` pointing at the current one.
+  const historyRef = useRef<{ stack: (ZoneDraft | null)[]; index: number }>({ stack: [null], index: 0 });
+  const currentRef = useRef<ZoneDraft | null>(null);
+  const pendingCommitRef = useRef<number | null>(null);
+  // Set while rebuilding a shape from history so that rebuild isn't recorded as a new step.
+  const silentRef = useRef(false);
+
+  const reportHistory = () => {
+    const h = historyRef.current;
+    cbRef.current.onHistory(h.index > 0, h.index < h.stack.length - 1);
+  };
+
+  const commit = () => {
+    if (pendingCommitRef.current != null) {
+      clearTimeout(pendingCommitRef.current);
+      pendingCommitRef.current = null;
+    }
+    const h = historyRef.current;
+    if (sameDraft(h.stack[h.index], currentRef.current)) return;
+    h.stack = [...h.stack.slice(0, h.index + 1), currentRef.current].slice(-MAX_HISTORY);
+    h.index = h.stack.length - 1;
+    reportHistory();
+  };
+
+  const emit = (d: ZoneDraft | null, coalesce = false) => {
+    currentRef.current = d;
+    cbRef.current.onDraft(d);
+    if (silentRef.current) return;
+    if (!coalesce) return commit();
+    if (pendingCommitRef.current != null) clearTimeout(pendingCommitRef.current);
+    pendingCommitRef.current = window.setTimeout(commit, CIRCLE_COMMIT_DELAY_MS);
+  };
+
+  const restore = (m: google.maps.Map, d: ZoneDraft | null) => {
+    silentRef.current = true;
+    try {
+      if (d?.shapeType === "RADIUS") {
+        const s = d.shape as RadiusShape;
+        createCircle(m, s.center, s.radiusMeters);
+      } else if (d?.shapeType === "POLYGON") {
+        createPolygon(m, ringToPath(d.shape as PolygonShape));
+      } else {
+        removeShape();
+        cbRef.current.onVertexCount(0);
+        emit(null);
+      }
+    } finally {
+      silentRef.current = false;
+    }
+    // Keep the current tool unless it no longer fits the restored shape.
+    if (d?.shapeType === "RADIUS") cbRef.current.onModeChange("edit");
+    else if (d?.shapeType === "POLYGON") {
+      const n = ringToPath(d.shape as PolygonShape).length;
+      if (n < 3) cbRef.current.onModeChange("drawPolygon");
+      else if (modeRef.current === "drawCircle") cbRef.current.onModeChange("edit");
+    }
+  };
+
+  const step = (delta: 1 | -1) => {
+    if (!map) return;
+    commit(); // flush a pending circle drag first
+    const h = historyRef.current;
+    const i = h.index + delta;
+    if (i < 0 || i >= h.stack.length) return;
+    h.index = i;
+    restore(map, h.stack[i]);
+    reportHistory();
+  };
+
+  controlsRef.current = { undo: () => step(-1), redo: () => step(1) };
 
   const removeShape = () => {
     listenersRef.current.forEach((l) => l.remove());
@@ -254,12 +378,12 @@ function EditableShape({
     if (!polygon) return;
     const n = polygon.getPath().getLength();
     cbRef.current.onVertexCount(n);
-    cbRef.current.onDraft(n > 0 ? polygonToDraft(polygon) : null);
+    emit(n > 0 ? polygonToDraft(polygon) : null);
   };
 
   const emitCircle = () => {
     const circle = circleRef.current;
-    if (circle) cbRef.current.onDraft(circleToDraft(circle));
+    if (circle) emit(circleToDraft(circle), true);
   };
 
   const createPolygon = (m: google.maps.Map, path: google.maps.LatLngLiteral[]) => {
@@ -304,12 +428,16 @@ function EditableShape({
   // Load the initial shape (or nothing) once the map exists, and frame the view.
   useEffect(() => {
     if (!map) return;
+    silentRef.current = true;
     if (initial?.shapeType === "RADIUS") {
       const s = initial.shape as RadiusShape;
       if (isValidLatLng(s.center)) createCircle(map, s.center, s.radiusMeters);
     } else if (initial?.shapeType === "POLYGON") {
       createPolygon(map, ringToPath(initial.shape as PolygonShape));
     }
+    silentRef.current = false;
+    historyRef.current = { stack: [currentRef.current], index: 0 };
+    reportHistory();
 
     if (!fittedRef.current) {
       fittedRef.current = true;
@@ -325,7 +453,10 @@ function EditableShape({
         if (!all.isEmpty()) map.fitBounds(all, 48);
       }
     }
-    return removeShape;
+    return () => {
+      if (pendingCommitRef.current != null) clearTimeout(pendingCommitRef.current);
+      removeShape();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map]);
 
@@ -340,7 +471,8 @@ function EditableShape({
     if (clearSignal === 0) return;
     removeShape();
     cbRef.current.onVertexCount(0);
-    cbRef.current.onDraft(null);
+    emit(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clearSignal]);
 
   // Map clicks add polygon vertices / place the circle.
