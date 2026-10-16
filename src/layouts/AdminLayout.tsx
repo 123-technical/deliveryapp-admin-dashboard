@@ -20,6 +20,7 @@ import {
   MenuUnfoldOutlined,
   EnvironmentOutlined,
   ShopOutlined,
+  NotificationOutlined,
 } from "@ant-design/icons";
 import { Button, Avatar, Space, Dropdown, Layout, type MenuProps } from "antd";
 import { useAuth } from "../contexts/AuthContext";
@@ -43,6 +44,7 @@ const NAV_ITEMS = [
   { key: "/users", icon: <UserOutlined />, label: "Staffs", superAdminOnly: true },
   { key: "/warehouses", icon: <ShopOutlined />, label: "Warehouses" },
   { key: "/delivery-zones", icon: <EnvironmentOutlined />, label: "Delivery Zones", superAdminOnly: true },
+  { key: "/advertisements", icon: <NotificationOutlined />, label: "Advertisements", superAdminOnly: true },
   { key: "/reports", icon: <BarChartOutlined />, label: "Reports" },
   { key: "/notifications", icon: <BellOutlined />, label: "Notifications" },
   { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
