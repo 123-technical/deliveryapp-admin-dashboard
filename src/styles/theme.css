@@ -257,6 +257,19 @@
   padding: 24px;
 }
 
+/* The 410px phone mock doesn't fit beside (or below) the form on phones. */
+@media (max-width: 480px) {
+  .ad-preview-wrap {
+    zoom: 0.75;
+  }
+}
+
+/* Color picker drags listen on `document`, where touchmove is passive, so they
+   can't preventDefault — without this a swipe also scrolls/zooms the page. */
+.ant-popover.ant-color-picker {
+  touch-action: none;
+}
+
 .ds-drawer-footer {
   padding: 16px 24px;
   border-top: 1px solid var(--color-border);

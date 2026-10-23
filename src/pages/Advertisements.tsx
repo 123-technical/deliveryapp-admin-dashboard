@@ -497,8 +497,8 @@ function AdsTab() {
         submitLabel={editingAd ? "Save Changes" : "Create Ad"}
         width="min(1040px, 100vw)"
       >
-        <div style={{ display: "flex", gap: 32, alignItems: "flex-start" }}>
-          <Form form={form} layout="vertical" name="adForm" style={{ flex: 1, minWidth: 0 }} requiredMark="optional">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 32, alignItems: "flex-start" }}>
+          <Form form={form} layout="vertical" name="adForm" style={{ flex: "1 1 320px", minWidth: 0 }} requiredMark="optional">
             <Form.Item
               name="placement"
               label="Placement"
@@ -621,7 +621,7 @@ function AdsTab() {
             </Form.Item>
           </Form>
 
-          <div style={{ position: "sticky", top: 0, flexShrink: 0 }}>
+          <div className="ad-preview-wrap" style={{ position: "sticky", top: 0, flexShrink: 0 }}>
             <div className="ds-section-label" style={{ marginBottom: 8, fontSize: 12, color: "#64748B" }}>
               Live preview · {spec.label}
             </div>
