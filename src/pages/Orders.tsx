@@ -129,17 +129,35 @@ export default function Orders() {
   };
 
   const handleEditModalOk = async () => {
+    let values: { status: OrderStatus };
     try {
-      const values = await editForm.validateFields();
-      if (editingOrder) {
+      values = await editForm.validateFields();
+    } catch {
+      return; // form shows its own validation message
+    }
+    if (!editingOrder || values.status === editingOrder.status) {
+      setIsEditModalVisible(false);
+      return;
+    }
+    const save = async () => {
+      try {
         await orderService.updateOrder(editingOrder.id, { status: values.status });
         message.success("Order status updated successfully");
         setIsEditModalVisible(false);
         fetchOrders();
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : "Failed to update order status");
       }
-    } catch {
-      message.error("Failed to update order status");
-    }
+    };
+    if (values.status !== "CANCELLED") return save();
+    Modal.confirm({
+      title: "Cancel this order?",
+      content: "Its items go back into the warehouse's stock and on sale in the app straight away. A cancelled order can't be reopened.",
+      okText: "Cancel order",
+      okButtonProps: { danger: true },
+      cancelText: "Keep order",
+      onOk: save,
+    });
   };
 
   const handleDelete = async (orderId: string) => {
@@ -452,6 +470,7 @@ export default function Orders() {
               <Option value="PENDING">Order Placed</Option>
               <Option value="OUT_FOR_DELIVERY">Out for Delivery</Option>
               <Option value="DELIVERED">Delivered</Option>
+              <Option value="CANCELLED">Cancelled (returns stock)</Option>
             </Select>
           </Form.Item>
         </Form>

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import type { Product } from "../types/product";
 import { productService } from "../services/products";
+import ProductStockCard from "../components/inventory/ProductStockCard";
 
 function buttonStyle() {
   return {
@@ -319,6 +320,8 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      <ProductStockCard productId={product.id} productName={product.name} />
 
       {/* Product Images */}
       {product.imageUrls && product.imageUrls.length > 0 && (

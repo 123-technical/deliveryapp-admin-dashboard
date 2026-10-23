@@ -6,7 +6,11 @@ import {
   Input,
   App,
   Popconfirm,
+  Tag,
+  Tooltip,
 } from "antd";
+import { useQuery } from "@tanstack/react-query";
+import { inventoryService } from "../services/inventory";
 import {
   PlusOutlined,
   EditOutlined,
@@ -118,6 +122,16 @@ const Products = () => {
   }, [page, pageSize, search]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  // Stock summed across warehouses for the visible page; polled so orders
+  // from the app show up without a manual refresh.
+  const productIds = products.map((p) => p.id);
+  const stockTotals = useQuery({
+    queryKey: ["stock-totals", productIds],
+    queryFn: () => inventoryService.totals(productIds),
+    enabled: productIds.length > 0,
+    refetchInterval: 30_000,
+  });
 
   // ── Fetch categories + brands for the drawer ──
   const fetchDropdownData = async () => {
@@ -312,6 +326,27 @@ const Products = () => {
       key: "price",
       width: 100,
       render: (price: string) => `₹${parseFloat(price).toFixed(2)}`,
+    },
+    {
+      title: "Stock",
+      key: "stock",
+      width: 150,
+      render: (_: unknown, record: Product) => {
+        const t = stockTotals.data?.[record.id];
+        if (!t) return <span style={{ color: "#94A3B8" }}>—</span>;
+        const issues = [
+          t.outIn > 0 && `out in ${t.outIn} warehouse${t.outIn > 1 ? "s" : ""}`,
+          t.lowIn > 0 && `low in ${t.lowIn}`,
+        ].filter(Boolean).join(", ");
+        const color = t.total === 0 ? "red" : issues ? "orange" : "green";
+        return (
+          <Tooltip title={issues ? `Total across warehouses · ${issues}` : "Total across warehouses"}>
+            <Tag color={color} style={{ fontWeight: 600, cursor: "pointer" }} onClick={() => navigate(`/product/detail/${record.id}`)}>
+              {t.total === 0 ? "Out of stock" : `${t.total}${issues ? " · check" : ""}`}
+            </Tag>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "Unit",

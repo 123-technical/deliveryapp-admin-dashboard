@@ -21,6 +21,7 @@ import {
   EnvironmentOutlined,
   ShopOutlined,
   NotificationOutlined,
+  InboxOutlined,
 } from "@ant-design/icons";
 import { Button, Avatar, Space, Dropdown, Layout, type MenuProps } from "antd";
 import { useAuth } from "../contexts/AuthContext";
@@ -37,6 +38,7 @@ const NAV_ITEMS = [
   { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders" },
   { key: "/carts", icon: <ShoppingOutlined />, label: "Carts" },
   { key: "/products", icon: <AppstoreOutlined />, label: "Products" },
+  { key: "/inventory", icon: <InboxOutlined />, label: "Inventory" },
   { key: "/categories", icon: <TagsOutlined />, label: "Categories" },
   { key: "/brands", icon: <CrownOutlined />, label: "Brands" },
   { key: "/customers", icon: <TeamOutlined />, label: "Customers" },

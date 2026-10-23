@@ -30,6 +30,7 @@ const Carts = lazy(() => import("./pages/Carts.tsx"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail.tsx"));
 const DeliveryZones = lazy(() => import("./pages/DeliveryZones.tsx"));
 const Warehouses = lazy(() => import("./pages/Warehouses.tsx"));
+const Inventory = lazy(() => import("./pages/Inventory.tsx"));
 const Advertisements = lazy(() => import("./pages/Advertisements.tsx"));
 
 // GuestRoute: once authenticated, go back to the page that sent us to /login
@@ -97,6 +98,7 @@ function App() {
                   <Route path="/brand/:id" element={<BrandDetail />} />
                   <Route path="/carts" element={<Carts />} />
                   <Route path="/warehouses" element={<Warehouses />} />
+                  <Route path="/inventory" element={<Inventory />} />
                   <Route
                     path="/delivery-zones"
                     element={

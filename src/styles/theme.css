@@ -98,6 +98,11 @@
   background: var(--table-row-hover-bg) !important;
 }
 
+/* Sold-out rows on the inventory table */
+.ds-table-wrapper .ant-table-tbody > tr.ds-row-out > td {
+  background: #FEF2F2;
+}
+
 /* Fix for expandable rows so they don't have double padding */
 .ds-table-wrapper .ant-table-expanded-row > td {
   padding: 0 !important;

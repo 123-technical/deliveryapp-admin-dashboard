@@ -14,6 +14,7 @@ import {
   Row,
   Col,
   Dropdown,
+  Modal,
   type MenuProps,
 } from "antd";
 import {
@@ -71,15 +72,28 @@ export default function OrderDetail() {
     if (id) fetchOrderById(id);
   }, [id, fetchOrderById]);
 
-  const handleUpdateStatus = async (newStatus: string) => {
+  const applyStatus = async (newStatus: string) => {
     if (!order) return;
     try {
       const updatedOrder = await orderService.updateOrder(order.id, { status: newStatus as any });
       setOrder({ ...order, ...updatedOrder });
       message.success("Order status updated successfully");
     } catch (error) {
-      message.error("Failed to update order status");
+      // e.g. "A cancelled order can't be reopened…"
+      message.error(error instanceof Error ? error.message : "Failed to update order status");
     }
+  };
+
+  const handleUpdateStatus = (newStatus: string) => {
+    if (newStatus !== "CANCELLED") return applyStatus(newStatus);
+    Modal.confirm({
+      title: "Cancel this order?",
+      content: "Its items go back into the warehouse's stock and on sale in the app straight away. A cancelled order can't be reopened.",
+      okText: "Cancel order",
+      okButtonProps: { danger: true },
+      cancelText: "Keep order",
+      onOk: () => applyStatus("CANCELLED"),
+    });
   };
 
   const handleDelete = async () => {
@@ -124,6 +138,8 @@ export default function OrderDetail() {
     { key: "PENDING", label: "Order Placed" },
     { key: "OUT_FOR_DELIVERY", label: "Out for Delivery" },
     { key: "DELIVERED", label: "Delivered" },
+    { type: "divider" },
+    { key: "CANCELLED", label: "Cancel order", danger: true, disabled: order.status === "CANCELLED" },
   ];
 
   const orderItemColumns = [
