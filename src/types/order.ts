@@ -43,6 +43,14 @@ export type Order = {
   deliveryPersonnelId?: string | null
   notes: string | null
   status: OrderStatus
+  /** Backend enum: CASH_ON_DELIVERY, UPI, CREDIT_CARD, DEBIT_CARD, NET_BANKING */
+  paymentMethod?: string
+  /** Online-payment orders hold stock until this time; null once paid. */
+  stockHoldExpiresAt?: string | null
+  warehouseId?: string | null
+  cancelledAt?: string | null
+  cancelledBy?: 'CUSTOMER' | 'STAFF' | 'SYSTEM' | null
+  cancelReason?: string | null
   orderItems: OrderItem[]
   items?: OrderItem[] // fallback for existing UI
   createdAt: string
@@ -72,6 +80,8 @@ export type UpdateOrderDto = {
   status?: OrderStatus
   notes?: string
   deliveryPersonnelId?: string
+  /** With status CANCELLED */
+  cancelReason?: string
 }
 
 export type OrdersQuery = {

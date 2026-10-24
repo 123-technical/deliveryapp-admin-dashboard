@@ -249,7 +249,7 @@ export default function ProductEdit() {
 
       await productService.updateProduct(id, payload);
       message.success("Product updated successfully");
-      navigate("/products");
+      navigate(`/product/detail/${id}`);
     } catch (error) {
       console.error("Product update failed:", error);
       const msg =
@@ -515,7 +515,7 @@ export default function ProductEdit() {
               color: "#111827",
               borderColor: "#e5e7eb",
             }}
-            onClick={() => navigate("/products")}
+            onClick={() => navigate(`/product/detail/${id}`)}
           >
             Cancel
           </button>

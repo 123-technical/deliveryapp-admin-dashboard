@@ -35,6 +35,7 @@ import type {
 import type { Product } from "../types/product";
 import DrawerForm from "../components/DrawerForm";
 import StatusBadge from "../components/StatusBadge";
+import { confirmCancelOrder } from "../components/orders/confirmCancelOrder";
 import CopyableId from "../components/CopyableId";
 
 const { RangePicker } = DatePicker;
@@ -139,9 +140,9 @@ export default function Orders() {
       setIsEditModalVisible(false);
       return;
     }
-    const save = async () => {
+    const save = async (cancelReason?: string) => {
       try {
-        await orderService.updateOrder(editingOrder.id, { status: values.status });
+        await orderService.updateOrder(editingOrder.id, { status: values.status, cancelReason });
         message.success("Order status updated successfully");
         setIsEditModalVisible(false);
         fetchOrders();
@@ -150,14 +151,7 @@ export default function Orders() {
       }
     };
     if (values.status !== "CANCELLED") return save();
-    Modal.confirm({
-      title: "Cancel this order?",
-      content: "Its items go back into the warehouse's stock and on sale in the app straight away. A cancelled order can't be reopened.",
-      okText: "Cancel order",
-      okButtonProps: { danger: true },
-      cancelText: "Keep order",
-      onOk: save,
-    });
+    confirmCancelOrder(save);
   };
 
   const handleDelete = async (orderId: string) => {

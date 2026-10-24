@@ -14,7 +14,6 @@ import {
   Row,
   Col,
   Dropdown,
-  Modal,
   type MenuProps,
 } from "antd";
 import {
@@ -26,7 +25,8 @@ import {
 import dayjs from "dayjs";
 import { orderService } from "../services/orders";
 import { useAuth } from "../contexts/AuthContext";
-import type { Order } from "../types/order";
+import type { Order, OrderStatus } from "../types/order";
+import { confirmCancelOrder, cancelledByLabel } from "../components/orders/confirmCancelOrder";
 import LocationPreviewMap from "../components/maps/LocationPreviewMap";
 
 const { Title, Text } = Typography;
@@ -72,10 +72,10 @@ export default function OrderDetail() {
     if (id) fetchOrderById(id);
   }, [id, fetchOrderById]);
 
-  const applyStatus = async (newStatus: string) => {
+  const applyStatus = async (newStatus: OrderStatus, cancelReason?: string) => {
     if (!order) return;
     try {
-      const updatedOrder = await orderService.updateOrder(order.id, { status: newStatus as any });
+      const updatedOrder = await orderService.updateOrder(order.id, { status: newStatus, cancelReason });
       setOrder({ ...order, ...updatedOrder });
       message.success("Order status updated successfully");
     } catch (error) {
@@ -85,15 +85,9 @@ export default function OrderDetail() {
   };
 
   const handleUpdateStatus = (newStatus: string) => {
-    if (newStatus !== "CANCELLED") return applyStatus(newStatus);
-    Modal.confirm({
-      title: "Cancel this order?",
-      content: "Its items go back into the warehouse's stock and on sale in the app straight away. A cancelled order can't be reopened.",
-      okText: "Cancel order",
-      okButtonProps: { danger: true },
-      cancelText: "Keep order",
-      onOk: () => applyStatus("CANCELLED"),
-    });
+    const status = newStatus as OrderStatus;
+    if (status !== "CANCELLED") return applyStatus(status);
+    confirmCancelOrder((reason) => applyStatus(status, reason));
   };
 
   const handleDelete = async () => {
@@ -221,6 +215,29 @@ export default function OrderDetail() {
               <Descriptions.Item label="Created At">
                 {dayjs(order.createdAt).format("DD MMM YYYY, HH:mm")}
               </Descriptions.Item>
+              <Descriptions.Item label="Payment">
+                {order.paymentMethod === "CASH_ON_DELIVERY" || !order.paymentMethod
+                  ? "Cash on delivery"
+                  : order.paymentMethod.replace(/_/g, " ")}
+              </Descriptions.Item>
+              {order.status === "PENDING" && order.stockHoldExpiresAt && (
+                <Descriptions.Item label="Awaiting payment">
+                  <Text type="warning">
+                    Stock held until {dayjs(order.stockHoldExpiresAt).format("HH:mm")}, then auto-cancelled if unpaid
+                  </Text>
+                </Descriptions.Item>
+              )}
+              {order.status === "CANCELLED" && (
+                <>
+                  <Descriptions.Item label="Cancelled by">{cancelledByLabel(order.cancelledBy)}</Descriptions.Item>
+                  <Descriptions.Item label="Cancelled at">
+                    {order.cancelledAt ? dayjs(order.cancelledAt).format("DD MMM YYYY, HH:mm") : "—"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Cancel reason" span={2}>
+                    {order.cancelReason || <Text type="secondary">No reason given</Text>}
+                  </Descriptions.Item>
+                </>
+              )}
               <Descriptions.Item label="Grand Total" span={2}>
                 <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
                   ₹{(order.finalAmount ? parseFloat(order.finalAmount) : grandTotal).toFixed(2)}

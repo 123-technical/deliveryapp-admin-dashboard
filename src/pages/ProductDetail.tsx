@@ -264,7 +264,7 @@ export default function ProductDetail() {
                 <div
                   style={{ fontSize: 18, fontWeight: 600, color: "#111827" }}
                 >
-                  ${product.price}
+                  ₹{Number(product.price).toFixed(2)}
                 </div>
               </div>
             </div>

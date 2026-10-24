@@ -18,6 +18,7 @@ const Orders = lazy(() => import("./pages/Orders.tsx"));
 const Products = lazy(() => import("./pages/Products.tsx"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail.tsx"));
 const ProductDuplicate = lazy(() => import("./pages/ProductDuplicate.tsx"));
+const ProductEdit = lazy(() => import("./pages/ProductEdit.tsx"));
 const Reports = lazy(() => import("./pages/Reports.tsx"));
 const Notifications = lazy(() => import("./pages/Notifications.tsx"));
 const Settings = lazy(() => import("./pages/Settings.tsx"));
@@ -88,6 +89,7 @@ function App() {
                     path="/product/duplicate/:id"
                     element={<ProductDuplicate />}
                   />
+                  <Route path="/product/edit/:id" element={<ProductEdit />} />
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/settings" element={<Settings />} />
