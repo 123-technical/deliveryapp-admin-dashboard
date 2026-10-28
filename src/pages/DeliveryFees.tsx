@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, Card, InputNumber, Space, Spin, Table, Tooltip } from "antd";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { Alert, App, Button, Card, Input, Space, Spin, Table, Tooltip } from "antd";
 import { DeleteOutlined, PlusOutlined, UndoOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -21,13 +21,58 @@ function validate(rows: Row[], beyondFee: number | null): string | null {
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     if (!(r.upToMeters >= 1)) return `Tier ${i + 1}: enter a distance`;
+    if (r.upToMeters > 100000) return `Tier ${i + 1}: distance can be at most 100 km`;
     if (!(r.fee >= 0)) return `Tier ${i + 1}: enter a fee (0 for free)`;
+    if (r.fee > 10000) return `Tier ${i + 1}: fee can be at most ₹10,000`;
     if (i > 0 && r.upToMeters <= rows[i - 1].upToMeters) {
       return `Tier ${i + 1} must reach further than tier ${i} (${formatDistance(rows[i - 1].upToMeters)})`;
     }
   }
   if (beyondFee == null || beyondFee < 0) return "Enter the fee for beyond the last tier";
+  if (beyondFee > 10000) return "Beyond-the-last-tier fee can be at most ₹10,000";
   return null;
+}
+
+/** Plain text box for a number: no spinner, no clamping while typing. Empty → null. */
+function NumberField({
+  value,
+  onChange,
+  decimals,
+  ...rest
+}: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+  decimals: number;
+  prefix?: string;
+  suffix?: string;
+  style?: CSSProperties;
+}) {
+  const format = (v: number | null) => (v == null || Number.isNaN(v) ? "" : v.toFixed(decimals));
+  const [text, setText] = useState(() => format(value));
+  const pattern = decimals > 0 ? new RegExp(`^\\d*(\\.\\d{0,${decimals}})?$`) : /^\d*$/;
+
+  // Pick up changes made from outside (load, discard) without clobbering what's being typed.
+  useEffect(() => {
+    const typed = text === "" || text === "." ? null : Number(text);
+    const v = value == null || Number.isNaN(value) ? null : value;
+    if (typed !== v) setText(format(v));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  return (
+    <Input
+      {...rest}
+      inputMode={decimals > 0 ? "decimal" : "numeric"}
+      value={text}
+      onChange={(e) => {
+        const t = e.target.value;
+        if (!pattern.test(t)) return;
+        setText(t);
+        onChange(t === "" || t === "." ? null : Number(t));
+      }}
+      onBlur={() => setText(format(value))}
+    />
+  );
 }
 
 export default function DeliveryFees() {
@@ -128,14 +173,12 @@ export default function DeliveryFees() {
                 title: "Up to",
                 key: "upTo",
                 render: (_, r) => (
-                  <InputNumber
-                    min={1}
-                    max={100000}
-                    precision={0}
+                  <NumberField
+                    decimals={0}
                     value={r.upToMeters}
                     suffix="m"
                     style={{ width: 130 }}
-                    onChange={(v) => update(r.key, { upToMeters: v ?? 0 })}
+                    onChange={(v) => update(r.key, { upToMeters: v ?? NaN })}
                   />
                 ),
               },
@@ -143,14 +186,12 @@ export default function DeliveryFees() {
                 title: "Fee",
                 key: "fee",
                 render: (_, r) => (
-                  <InputNumber
-                    min={0}
-                    max={10000}
-                    precision={2}
+                  <NumberField
+                    decimals={2}
                     value={r.fee}
                     prefix="₹"
                     style={{ width: 120 }}
-                    onChange={(v) => update(r.key, { fee: v ?? -1 })}
+                    onChange={(v) => update(r.key, { fee: v ?? NaN })}
                   />
                 ),
               },
@@ -178,7 +219,7 @@ export default function DeliveryFees() {
 
           <div className="ds-field-group" style={{ marginTop: 20 }}>
             <label className="ds-label">Beyond the last tier (and when an address has no map pin)</label>
-            <InputNumber min={0} max={10000} precision={2} prefix="₹" value={beyondFee} onChange={setBeyondFee} style={{ width: 160 }} />
+            <NumberField decimals={2} prefix="₹" value={beyondFee} onChange={setBeyondFee} style={{ width: 160 }} />
           </div>
 
           {error ? (
