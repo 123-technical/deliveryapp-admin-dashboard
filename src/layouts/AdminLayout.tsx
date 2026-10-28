@@ -22,6 +22,7 @@ import {
   ShopOutlined,
   NotificationOutlined,
   InboxOutlined,
+  CarOutlined,
 } from "@ant-design/icons";
 import { Button, Avatar, Space, Dropdown, Layout, type MenuProps } from "antd";
 import { useAuth } from "../contexts/AuthContext";
@@ -46,6 +47,7 @@ const NAV_ITEMS = [
   { key: "/users", icon: <UserOutlined />, label: "Staffs", superAdminOnly: true },
   { key: "/warehouses", icon: <ShopOutlined />, label: "Warehouses" },
   { key: "/delivery-zones", icon: <EnvironmentOutlined />, label: "Delivery Zones", superAdminOnly: true },
+  { key: "/delivery-fees", icon: <CarOutlined />, label: "Delivery Fees", superAdminOnly: true },
   { key: "/advertisements", icon: <NotificationOutlined />, label: "Advertisements", superAdminOnly: true },
   { key: "/reports", icon: <BarChartOutlined />, label: "Reports" },
   { key: "/notifications", icon: <BellOutlined />, label: "Notifications" },

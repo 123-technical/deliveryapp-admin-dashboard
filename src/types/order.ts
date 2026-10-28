@@ -36,7 +36,9 @@ export type Order = {
   orderNumber?: string
   totalAmount?: string 
   discountAmount?: string 
-  finalAmount?: string 
+  finalAmount?: string
+  deliveryFee?: string
+  deliveryDistanceMeters?: number | null
   userId: string
   deliveryAddressId: string
   deliverySlotId: string | null

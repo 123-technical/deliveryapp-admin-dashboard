@@ -32,6 +32,7 @@ const OrderDetail = lazy(() => import("./pages/OrderDetail.tsx"));
 const DeliveryZones = lazy(() => import("./pages/DeliveryZones.tsx"));
 const Warehouses = lazy(() => import("./pages/Warehouses.tsx"));
 const Inventory = lazy(() => import("./pages/Inventory.tsx"));
+const DeliveryFees = lazy(() => import("./pages/DeliveryFees.tsx"));
 const Advertisements = lazy(() => import("./pages/Advertisements.tsx"));
 
 // GuestRoute: once authenticated, go back to the page that sent us to /login
@@ -106,6 +107,14 @@ function App() {
                     element={
                       <RoleProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
                         <DeliveryZones />
+                      </RoleProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/delivery-fees"
+                    element={
+                      <RoleProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                        <DeliveryFees />
                       </RoleProtectedRoute>
                     }
                   />

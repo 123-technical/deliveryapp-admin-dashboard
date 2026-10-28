@@ -27,6 +27,7 @@ import { orderService } from "../services/orders";
 import { useAuth } from "../contexts/AuthContext";
 import type { Order, OrderStatus } from "../types/order";
 import { confirmCancelOrder, cancelledByLabel } from "../components/orders/confirmCancelOrder";
+import { formatDistance } from "../types/deliveryFee";
 import LocationPreviewMap from "../components/maps/LocationPreviewMap";
 
 const { Title, Text } = Typography;
@@ -215,6 +216,16 @@ export default function OrderDetail() {
               <Descriptions.Item label="Created At">
                 {dayjs(order.createdAt).format("DD MMM YYYY, HH:mm")}
               </Descriptions.Item>
+              <Descriptions.Item label="Delivery fee">
+                {order.deliveryFee == null
+                  ? "—"
+                  : Number(order.deliveryFee) === 0
+                    ? <Text type="success">Free</Text>
+                    : `₹${Number(order.deliveryFee).toFixed(2)}`}
+                {order.deliveryDistanceMeters != null && (
+                  <Text type="secondary">{" · "}{formatDistance(order.deliveryDistanceMeters)} from store</Text>
+                )}
+              </Descriptions.Item>
               <Descriptions.Item label="Payment">
                 {order.paymentMethod === "CASH_ON_DELIVERY" || !order.paymentMethod
                   ? "Cash on delivery"
@@ -259,7 +270,7 @@ export default function OrderDetail() {
               summary={() => (
                 <Table.Summary.Row>
                   <Table.Summary.Cell index={0} colSpan={4}>
-                    <Text strong style={{ float: 'right' }}>Total</Text>
+                    <Text strong style={{ float: 'right' }}>Items total</Text>
                   </Table.Summary.Cell>
                   <Table.Summary.Cell index={1}>
                     <Text strong style={{ fontSize: 16 }}>₹{grandTotal.toFixed(2)}</Text>
