@@ -157,7 +157,7 @@ export default function Orders() {
       title: "Customer",
       key: "customer",
       render: (_: any, record: Order) => {
-        const name = record.user?.name || "Unknown";
+        const name = record.user?.name || record.user?.mobile || "Unknown";
         const email = record.user?.email || "";
         return (
           <div>

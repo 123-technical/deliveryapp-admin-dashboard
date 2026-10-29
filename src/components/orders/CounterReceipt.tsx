@@ -1,15 +1,18 @@
+import { createPortal } from "react-dom";
 import dayjs from "dayjs";
 import type { Order } from "../../types/order";
 import { COUNTER_PAYMENT_METHODS, shortOrderNumber } from "../../types/order";
 import type { Warehouse } from "../../types/warehouse";
 
-// While printing, hide the whole app and show only the receipt, sized for an 80mm till roll
-// (it still prints fine on A4).
+// A second copy of the receipt is portalled straight into <body>. While printing, every other
+// child of <body> (the app, antd popups) is display:none, so only the receipt is on paper,
+// sized for an 80mm till roll (it still prints fine on A4).
 const PRINT_CSS = `
+.counter-receipt-print { display: none; }
 @media print {
-  body * { visibility: hidden; }
-  .counter-receipt, .counter-receipt * { visibility: visible; }
-  .counter-receipt { position: absolute; left: 0; top: 0; width: 72mm; margin: 0; border: none !important; box-shadow: none !important; }
+  body > *:not(.counter-receipt-print) { display: none !important; }
+  .counter-receipt-print { display: block; }
+  .counter-receipt-print .counter-receipt { width: 72mm !important; padding: 0 !important; border: none !important; }
   @page { margin: 4mm; }
 }
 `;
@@ -30,7 +33,7 @@ export default function CounterReceipt({ order, productNames, store }: Props) {
   const customer = order.user && !order.user.isSystem ? order.user.name || order.user.mobile : null;
   const row = { display: "flex", justifyContent: "space-between", gap: 8 } as const;
 
-  return (
+  const receipt = (
     <div
       className="counter-receipt"
       style={{
@@ -44,7 +47,6 @@ export default function CounterReceipt({ order, productNames, store }: Props) {
         color: "#000",
       }}
     >
-      <style>{PRINT_CSS}</style>
       <div style={{ textAlign: "center", marginBottom: 8 }}>
         <div style={{ fontSize: 15, fontWeight: 700 }}>{store?.name ?? "Store"}</div>
         {store?.location && <div>{store.location}</div>}
@@ -66,5 +68,13 @@ export default function CounterReceipt({ order, productNames, store }: Props) {
       <div style={row}><span>Paid by</span><span>{payment}</span></div>
       <div style={{ textAlign: "center", marginTop: 12 }}>Thank you!</div>
     </div>
+  );
+
+  return (
+    <>
+      <style>{PRINT_CSS}</style>
+      {receipt}
+      {createPortal(<div className="counter-receipt-print">{receipt}</div>, document.body)}
+    </>
   );
 }

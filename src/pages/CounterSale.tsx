@@ -351,7 +351,7 @@ export default function CounterSale() {
               <div>
                 <div className="ds-section-label">Customer phone (optional)</div>
                 <Input
-                  addonBefore="+91"
+                  prefix={<span style={{ color: "#94A3B8" }}>+91</span>}
                   inputMode="numeric"
                   maxLength={10}
                   placeholder="Leave empty for walk-in"
