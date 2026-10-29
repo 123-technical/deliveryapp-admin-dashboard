@@ -58,6 +58,8 @@ export async function fetchCustomers(params: CustomersQuery): Promise<CustomersR
       role: 'CUSTOMER',
     };
 
+    if (params.mobile) filters.mobile = params.mobile;
+
     // Add status filter if provided
     // Backend only has deletedAt field - active = null, inactive/blocked = not null
     if (params.status && params.status !== 'all') {

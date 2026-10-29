@@ -23,6 +23,7 @@ import {
   NotificationOutlined,
   InboxOutlined,
   CarOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import { Button, Avatar, Space, Dropdown, Layout, type MenuProps } from "antd";
 import { useAuth } from "../contexts/AuthContext";
@@ -37,6 +38,7 @@ type AdminLayoutProps = {
 const NAV_ITEMS = [
   { key: "/overview", icon: <DashboardOutlined />, label: "Overview" },
   { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders" },
+  { key: "/counter", icon: <DollarOutlined />, label: "Counter Sale" },
   { key: "/carts", icon: <ShoppingOutlined />, label: "Carts" },
   { key: "/products", icon: <AppstoreOutlined />, label: "Products" },
   { key: "/inventory", icon: <InboxOutlined />, label: "Inventory" },

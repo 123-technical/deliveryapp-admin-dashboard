@@ -47,6 +47,8 @@ export type CustomersQuery = {
   search?: string
   status?: CustomerStatus | 'all'
   role?: UserRole
+  /** Exact mobile match */
+  mobile?: string
   startDate?: string
   endDate?: string
   sortBy?: keyof Customer
