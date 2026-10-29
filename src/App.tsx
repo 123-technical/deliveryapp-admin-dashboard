@@ -29,6 +29,7 @@ const Brands = lazy(() => import("./pages/Brands.tsx"));
 const BrandDetail = lazy(() => import("./pages/BrandDetail.tsx"));
 const Carts = lazy(() => import("./pages/Carts.tsx"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail.tsx"));
+const CounterSale = lazy(() => import("./pages/CounterSale.tsx"));
 const DeliveryZones = lazy(() => import("./pages/DeliveryZones.tsx"));
 const Warehouses = lazy(() => import("./pages/Warehouses.tsx"));
 const Inventory = lazy(() => import("./pages/Inventory.tsx"));
@@ -81,6 +82,7 @@ function App() {
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/admin/orders" element={<Navigate to="/orders" replace />} />
+                  <Route path="/counter" element={<CounterSale />} />
                   <Route path="/products" element={<Products />} />
                   <Route
                     path="/product/detail/:id"

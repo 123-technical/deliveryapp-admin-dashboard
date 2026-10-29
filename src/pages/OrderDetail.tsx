@@ -126,6 +126,8 @@ export default function OrderDetail() {
     );
   }
 
+  // Counter sales are handed over in the store: no address, slot or delivery fee.
+  const isCounter = order.channel === "COUNTER";
   const itemsList = order.orderItems || order.items || [];
   const grandTotal = itemsList.reduce((acc, item) => acc + (Number(item.priceAtPurchase) * item.quantity), 0);
 
@@ -216,16 +218,22 @@ export default function OrderDetail() {
               <Descriptions.Item label="Created At">
                 {dayjs(order.createdAt).format("DD MMM YYYY, HH:mm")}
               </Descriptions.Item>
-              <Descriptions.Item label="Delivery fee">
-                {order.deliveryFee == null
-                  ? "—"
-                  : Number(order.deliveryFee) === 0
-                    ? <Text type="success">Free</Text>
-                    : `₹${Number(order.deliveryFee).toFixed(2)}`}
-                {order.deliveryDistanceMeters != null && (
-                  <Text type="secondary">{" · "}{formatDistance(order.deliveryDistanceMeters)} from store</Text>
-                )}
-              </Descriptions.Item>
+              {isCounter ? (
+                <Descriptions.Item label="Channel">
+                  <Tag color="purple">Counter sale</Tag>
+                </Descriptions.Item>
+              ) : (
+                <Descriptions.Item label="Delivery fee">
+                  {order.deliveryFee == null
+                    ? "—"
+                    : Number(order.deliveryFee) === 0
+                      ? <Text type="success">Free</Text>
+                      : `₹${Number(order.deliveryFee).toFixed(2)}`}
+                  {order.deliveryDistanceMeters != null && (
+                    <Text type="secondary">{" · "}{formatDistance(order.deliveryDistanceMeters)} from store</Text>
+                  )}
+                </Descriptions.Item>
+              )}
               <Descriptions.Item label="Payment">
                 {order.paymentMethod === "CASH_ON_DELIVERY" || !order.paymentMethod
                   ? "Cash on delivery"
@@ -295,6 +303,7 @@ export default function OrderDetail() {
             )}
           </Card>
 
+          {!isCounter && (
           <Card title="Delivery Info" style={{ marginBottom: 24 }}>
             <Descriptions column={1} layout="vertical">
               <Descriptions.Item label="Delivery Address">
@@ -306,8 +315,10 @@ export default function OrderDetail() {
                       <LocationPreviewMap lat={order.deliveryAddress.lat} lng={order.deliveryAddress.lng} />
                     </div>
                   </div>
-                ) : (
+                ) : order.deliveryAddressId ? (
                   <Text code>{order.deliveryAddressId}</Text>
+                ) : (
+                  <Text type="secondary">No address</Text>
                 )}
               </Descriptions.Item>
               <Descriptions.Item label="Delivery Slot">
@@ -323,6 +334,7 @@ export default function OrderDetail() {
               </Descriptions.Item>
             </Descriptions>
           </Card>
+          )}
 
           {/* Section 5: Actions */}
           {isAdmin && (

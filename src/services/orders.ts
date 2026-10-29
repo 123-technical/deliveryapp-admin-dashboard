@@ -1,8 +1,9 @@
 import { fetchWithAuth } from "./auth";
+import { InventoryApiError } from "./inventory";
 import type { 
   Order, 
   OrderWithItems, 
-  CreateOrderDto, 
+  CreateCounterOrderDto, 
   UpdateOrderDto, 
   OrdersQuery, 
   OrdersResponse 
@@ -26,6 +27,7 @@ class OrderService {
             
             if (query.search) queryParams.append('search', query.search);
             if (query.status) queryParams.append('status', query.status);
+            if (query.channel) queryParams.append('filters', JSON.stringify({ channel: query.channel }));
             if (query.userId) queryParams.append('userId', query.userId);
             if (query.sortBy) queryParams.append('sortBy', query.sortBy);
             if (query.sortOrder) queryParams.append('sortOrder', query.sortOrder);
@@ -126,32 +128,22 @@ class OrderService {
         }
     }
 
-    async createOrder(orderData: CreateOrderDto): Promise<Order> {
-        try {
-            const response = await fetchWithAuth(`${this.baseURL}/api/v1/orders`, {
-                method: 'POST',
-                body: JSON.stringify(orderData),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                // If backend returns validation errors array, include them in the error message
-                const errorMessage = errorData.message || `Failed to create order: ${response.status} ${response.statusText}`;
-                const validationErrors = errorData.errors;
-                if (Array.isArray(validationErrors) && validationErrors.length > 0) {
-                    throw new Error(`${errorMessage}: ${validationErrors.join(', ')}`);
-                }
-                throw new Error(errorMessage);
-            }
-
-            const responseData = await response.json();
-            
-            // Extract the actual data from the wrapped response
-            return responseData.data || responseData;
-        } catch (error) {
-            console.error('Create order error:', error);
-            throw error;
+    /**
+     * Records an in-store sale. A 409 throws an InventoryApiError with
+     * `code: 'INSUFFICIENT_STOCK'` and `data.items` listing every short line.
+     */
+    async createCounterOrder(dto: CreateCounterOrderDto): Promise<Order> {
+        const response = await fetchWithAuth(`${this.baseURL}/api/v1/orders/counter`, {
+            method: 'POST',
+            body: JSON.stringify(dto),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            // Validation failures list each problem in `errors`
+            const errors = Array.isArray(body.errors) && body.errors.length > 0 ? `: ${body.errors.join(', ')}` : '';
+            throw new InventoryApiError(`${body.message || `Failed to record sale (${response.status})`}${errors}`, response.status, body.data ?? undefined);
         }
+        return body.data;
     }
 
     async updateOrder(orderId: string, orderData: UpdateOrderDto): Promise<Order> {
