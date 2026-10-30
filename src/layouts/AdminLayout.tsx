@@ -28,6 +28,7 @@ import {
 import { Button, Avatar, Space, Dropdown, Layout, type MenuProps } from "antd";
 import { useAuth } from "../contexts/AuthContext";
 import { MapsProvider } from "../lib/googleMaps";
+import PageErrorBoundary from "../components/PageErrorBoundary";
 
 const { Header, Sider, Content } = Layout;
 
@@ -247,7 +248,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Content */}
         <Content style={{ overflow: "auto", background: "#F8FAFC" }}>
           {/* Loads the Google Maps JS API once for every page that shows a map. */}
-          <MapsProvider>{children}</MapsProvider>
+          <MapsProvider>
+            <PageErrorBoundary resetKey={location.pathname}>{children}</PageErrorBoundary>
+          </MapsProvider>
         </Content>
       </Layout>
     </Layout>
