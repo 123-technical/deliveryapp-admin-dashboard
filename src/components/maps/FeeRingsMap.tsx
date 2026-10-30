@@ -5,7 +5,6 @@ import { DEFAULT_CENTER, DEFAULT_ZOOM, GOOGLE_MAPS_MAP_ID } from "../../lib/goog
 import type { DeliveryZone } from "../../types/deliveryZone";
 import type { Warehouse } from "../../types/warehouse";
 import { feeForDistance, formatDistance, formatFee, haversineMeters, tierColor, type FeeTier } from "../../types/deliveryFee";
-import MapErrorBoundary from "./MapErrorBoundary";
 import ZoneOverlay from "./ZoneOverlay";
 import { isValidLatLng } from "./zoneShapes";
 
@@ -26,11 +25,9 @@ type Located = Warehouse & { latitude: number; longitude: number; position: goog
  */
 export default function FeeRingsMap({ height = 460, ...props }: Props) {
   return (
-    <MapErrorBoundary height={height}>
-      <MapGate height={height}>
-        <RingsMap height={height} {...props} />
-      </MapGate>
-    </MapErrorBoundary>
+    <MapGate height={height}>
+      <RingsMap height={height} {...props} />
+    </MapGate>
   );
 }
 

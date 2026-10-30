@@ -2,7 +2,8 @@
 // mounted once (in AdminLayout), so the script is only ever injected once with
 // one fixed set of loader params — every map component below it just consumes
 // the already-loaded API.
-import { APIProvider, APILoadingStatus, useApiLoadingStatus } from "@vis.gl/react-google-maps";
+import { Component } from "react";
+import { APIProvider,APILoadingStatus, useApiLoadingStatus } from "@vis.gl/react-google-maps";
 import { EnvironmentOutlined } from "@ant-design/icons";
 import { GOOGLE_MAPS_API_KEY, MapsConfiguredContext, useMapsConfigured } from "./googleMapsConfig";
 
@@ -45,12 +46,47 @@ export function MapPlaceholder({ height, text }: { height: number | string; text
 
 /**
  * Renders children only once the Maps API is usable; otherwise a placeholder
- * explaining why (no key, still loading, or Google rejected the key).
+ * explaining why (no key, still loading, or Google rejected the key). Every
+ * map must render through this — it also catches anything the map throws, so
+ * a Maps failure stays inside the map's box instead of blanking the page.
  */
 export function MapGate({ height, children }: { height: number | string; children: React.ReactNode }) {
   const configured = useMapsConfigured();
   if (!configured) return <MapPlaceholder height={height} text="Google Maps key not configured" />;
-  return <LoadedGate height={height}>{children}</LoadedGate>;
+  return (
+    <MapErrorBoundary height={height}>
+      <LoadedGate height={height}>{children}</LoadedGate>
+    </MapErrorBoundary>
+  );
+}
+
+/**
+ * The Maps API can throw from its own internals (e.g. after a key/referrer
+ * error it doesn't report as an auth failure) — useApiLoadingStatus alone
+ * doesn't catch that.
+ */
+class MapErrorBoundary extends Component<{ height: number | string; children: React.ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error("Map crashed:", error);
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <MapPlaceholder
+          height={this.props.height}
+          text="The map couldn't load here — check that the Google Maps key allows this site's URL. The rest of the page still works."
+        />
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function LoadedGate({ height, children }: { height: number | string; children: React.ReactNode }) {
